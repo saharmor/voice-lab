@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from llm_testing.core.data_types import ConversationContext
+from core.data_types import ConversationContext
 
 class LLMInterface(ABC):
     """Abstract interface for LLM interactions"""

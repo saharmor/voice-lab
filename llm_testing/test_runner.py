@@ -1,9 +1,8 @@
-# llm_testing/runners/test_runner.py (updated)
-from llm_testing.core.data_types import ConversationContext
-from llm_testing.core.goals import ConversationGoal
-from llm_testing.core.interfaces import LLMInterface
-from llm_testing.core.personas import Persona
-from llm_testing.core.evaluator import ConversationEvaluator
+from core.data_types import ConversationContext
+from core.goals import ConversationGoal
+from core.interfaces import LLMInterface
+from core.personas import Persona
+from core.evaluator import ConversationEvaluation, ConversationEvaluator
 from typing import List, Dict, Any
 import time
 

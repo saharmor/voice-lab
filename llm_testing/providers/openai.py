@@ -1,7 +1,7 @@
 from typing import List, Dict, Any
 import openai
-from llm_testing.core.interfaces import LLMInterface
-from llm_testing.core.data_types import ConversationContext
+from core.interfaces import LLMInterface
+from core.data_types import ConversationContext
 
 class OpenAIProvider(LLMInterface):
     def __init__(self, api_key: str, model: str = "gpt-4"):
