@@ -7,14 +7,13 @@ from core.evaluator import LLMConversationEvaluator
 from providers.openai import OpenAIProvider
 
 def run_hotel_booking_test():
-    # Initialize LLM providers
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise ValueError("Please set OPENAI_API_KEY environment variable")
 
     # Create LLM instances for agent and evaluator
-    agent_llm = OpenAIProvider(api_key, "gpt-4")
-    evaluator_llm = OpenAIProvider(api_key, "gpt-4")
+    agent_llm = OpenAIProvider(api_key, "gpt-4o-mini")
+    evaluator_llm = OpenAIProvider(api_key, "gpt-4o")
 
     # Create conversation goal
     goal = ConversationGoal(
