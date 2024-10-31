@@ -2,9 +2,10 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, List
 
 @dataclass
-class ConversationGoal:
+class AgentTaskConfig:
     """Represents the desired outcome of a conversation"""
-    description: str
+    system_prompt: str
+    initial_message: str
     success_criteria: Dict[str, Any]
     context: Dict[str, Any] = field(default_factory=dict)
     

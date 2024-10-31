@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from core.goals import ConversationGoal
+from core.goals import AgentTaskConfig
 from core.personas import PersonaTemplate, Mood, ResponseStyle, PersonaConstraints
 from test_runner import GoalBasedTestRunner
 from core.evaluator import LLMConversationEvaluator
@@ -16,8 +16,9 @@ def run_hotel_booking_test():
     evaluator_llm = OpenAIProvider(api_key, "gpt-4o")
 
     # Create conversation goal
-    goal = ConversationGoal(
-        description="Book a hotel room for December 12th-24th",
+    goal = AgentTaskConfig(
+        system_prompt="You are a voice agent trying to book a hotel room for December 12th-24th",
+        initial_message="Hi, I'd like to book a room",
         success_criteria={
             "booking_dates": {
                 "start": "2024-12-12",
@@ -28,7 +29,7 @@ def run_hotel_booking_test():
         }
     )
 
-    # Create persona using template
+    # create callee persona
     persona = PersonaTemplate.hotel_receptionist(
         name="John Smith",
         mood=Mood.ANGRY,
@@ -43,14 +44,11 @@ def run_hotel_booking_test():
         )
     )
 
-    # Initialize evaluator and test runner
     evaluator = LLMConversationEvaluator(evaluator_llm)
     runner = GoalBasedTestRunner(agent_llm, evaluator)
 
-    # Run the test
     evaluation = runner.run_conversation_test(goal, persona)
 
-    # Print results
     print("\n=== Test Results ===")
     print(f"Success: {evaluation.success}")
     print(f"Goal Achieved: {evaluation.goal_achieved}")
@@ -60,3 +58,9 @@ def run_hotel_booking_test():
         print(f"\n{turn['speaker'].upper()}: {turn['text']}")
 
     return evaluation
+
+if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv()
+
+    evaluation = run_hotel_booking_test()

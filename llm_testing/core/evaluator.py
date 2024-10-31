@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
-from core.goals import ConversationGoal, Persona
+from core.goals import AgentTaskConfig, Persona
 from core.interfaces import LLMInterface
 from core.data_types import ConversationContext
 
@@ -25,7 +25,7 @@ class ConversationEvaluator(ABC):
     @abstractmethod
     def evaluate(self, 
                 conversation_history: List[Dict[str, str]],
-                goal: ConversationGoal,
+                task_config: AgentTaskConfig,
                 persona: Persona) -> ConversationEvaluation:
         pass
 
@@ -36,9 +36,9 @@ class LLMConversationEvaluator(ConversationEvaluator):
     
     def evaluate(self, 
                 conversation_history: List[Dict[str, str]],
-                goal: ConversationGoal,
+                task_config: AgentTaskConfig,
                 persona: Persona) -> ConversationEvaluation:
-        prompt = self._create_evaluation_prompt(conversation_history, goal, persona)
+        prompt = self._create_evaluation_prompt(conversation_history, task_config, persona)
         evaluation_response = self.llm.generate_response(
             ConversationContext(system_prompt=self._get_evaluator_system_prompt()),
             prompt
@@ -61,12 +61,12 @@ Provide your evaluation in JSON format with the following structure:
     
     def _create_evaluation_prompt(self, 
                                 conversation_history: List[Dict[str, str]],
-                                goal: ConversationGoal,
+                                task_config: AgentTaskConfig,
                                 persona: Persona) -> str:
         return f"""Please evaluate the following conversation according to the provided goal and success criteria:
 
-Goal: {goal.description}
-Success Criteria: {json.dumps(goal.success_criteria, indent=2)}
+Goal: {task_config.system_prompt}
+Success Criteria: {json.dumps(task_config.success_criteria, indent=2)}
 
 Conversation:
 {self._format_conversation(conversation_history)}

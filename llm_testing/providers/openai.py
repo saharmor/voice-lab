@@ -4,7 +4,7 @@ from core.interfaces import LLMInterface
 from core.data_types import ConversationContext
 
 class OpenAIProvider(LLMInterface):
-    def __init__(self, api_key: str, model: str = "gpt-4"):
+    def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
         self.model = model
         openai.api_key = api_key
 
@@ -15,7 +15,7 @@ class OpenAIProvider(LLMInterface):
         # Add conversation history
         for msg in context.conversation_history:
             messages.append({
-                "role": "assistant" if msg["speaker"] == "agent" else "user",
+                "role": "assistant" if msg["speaker"] == "agent" else "callee",
                 "content": msg["text"]
             })
         

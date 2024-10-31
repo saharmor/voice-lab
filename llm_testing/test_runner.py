@@ -1,5 +1,5 @@
 from core.data_types import ConversationContext
-from core.goals import ConversationGoal
+from core.goals import AgentTaskConfig
 from core.interfaces import LLMInterface
 from core.personas import Persona
 from core.evaluator import ConversationEvaluation, ConversationEvaluator
@@ -14,7 +14,7 @@ class GoalBasedTestRunner:
         self.evaluator = evaluator
         self.conversation_history: List[Dict[str, str]] = []
     
-    def _generate_user_response(self, persona: Persona) -> str:
+    def _generate_callee_response(self, persona: Persona) -> str:
         """Generate user response based on persona and conversation history"""
         # Create a system prompt for the user simulator
         system_prompt = f"""You are simulating a {persona.description}.
@@ -66,26 +66,24 @@ Remember:
         return any(indicator in last_response.lower() for indicator in end_indicators)
 
     def run_conversation_test(self,
-                            goal: ConversationGoal,
+                            task_config: AgentTaskConfig,
                             persona: Persona,
                             max_turns: int = 10) -> ConversationEvaluation:
         self.conversation_history = []
         
-        # Start with user inquiry
-        initial_user_message = "Hi, I'd like to book a room"
         self.conversation_history.append({
-            "speaker": "user",
-            "text": initial_user_message
+            "speaker": "callee",
+            "text": f"Hi {persona.name} here, how can I help you today?"
         })
         
         for _ in range(max_turns):
             # Get latest message
             last_message = self.conversation_history[-1]["text"]
             
-            # If last message was from user, generate agent response
-            if self.conversation_history[-1]["speaker"] == "user":
+            # If last message was from callee, generate agent response
+            if self.conversation_history[-1]["speaker"] == "callee":
                 context = ConversationContext(
-                    system_prompt=self._create_system_prompt(goal, persona),
+                    system_prompt=task_config.system_prompt,
                     conversation_history=self.conversation_history
                 )
                 
@@ -96,19 +94,19 @@ Remember:
                     "text": response
                 })
             
-            # If last message was from agent, generate user response
+            # If last message was from agent, generate callee response
             else:
-                user_response = self._generate_user_response(persona)
+                callee_response = self._generate_callee_response(persona)
                 self.conversation_history.append({
-                    "speaker": "user",
-                    "text": user_response
+                    "speaker": "callee",
+                    "text": callee_response
                 })
                 
-                if self._should_end_conversation(user_response):
+                if self._should_end_conversation(callee_response):
                     break
         
         return self.evaluator.evaluate(
             self.conversation_history,
-            goal,
+            task_config,
             persona
         )
