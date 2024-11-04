@@ -72,11 +72,11 @@ class ConversationEndStatus:
             raise ValueError("who_ended must be either 'callee' or 'agent'")
 
 class LLMResponse:
-    def __init__(self, response_content: str, end_status: ConversationEndStatus):
+    def __init__(self, response_content: str, tools_called):
         """
         Args:
             response_content: The actual response text from the LLM
             end_status: The conversation end status
         """
         self.response_content = response_content
-        self.end_status = end_status
+        self.tools_called = tools_called

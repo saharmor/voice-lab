@@ -19,8 +19,69 @@ def run_hotel_booking_test():
 
     # Create conversation goal
     goal = AgentTaskConfig(
-        system_prompt="You are a voice agent trying to book a hotel room for December 12th-24th. You are also okay with booking partial dates as long it's at least two nights.",
+        system_prompt="You are a voice agent trying to book a hotel room for December 12th-24th. You are also okay with booking partial dates as long it's at least two nights. Make sure to confirm the price and booking reference.",
         initial_message="Hi, I'd like to book a room",
+        tool_calls=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "end_conversation",
+                    "description": """Call ONLY when conversation reaches clear end state by both sides exchanging farewell messages or one side explicitly stating they want to end the conversation.
+
+                    DO NOT CALL if:
+                    - Still negotiating/discussing
+                    - Questions pending
+                    - No explicit end statement
+                    - Just discussing options
+
+                    Must have clear evidence in final messages.
+            """,
+                    "strict": True,
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "reason": {
+                                "type": "string",
+                                "description": "The specific reason why the conversation must end, which should directly reference one of the conditions listed above",
+                                "enum": [
+                                    "explicit_termination_request",
+                                    "service_not_available",
+                                    "price_agreement_not_reached",
+                                    "customer_declined_service",
+                                    "provider_declined_service"
+                                ]
+                            },
+                            "who_ended_conversation": {
+                                "type": "string",
+                                "enum": ["agent", "callee"],
+                                "description": "Who initiated the conversation ending. Must be supported by clear evidence in the conversation."
+                            },
+                            "termination_evidence": {
+                                "type": "object",
+                                "properties": {
+                                    "final_messages": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Last 1-2 messages showing clear end reason"
+                                    },
+                                    "termination_type": {
+                                        "type": "string",
+                                        "enum": ["successful_completion", "early_termination"],
+                                        "description": "Whether successful completion or early termination"
+                                    }
+                                },
+                                "required": ["final_messages", "termination_type"],
+                                "additionalProperties": False
+                            }
+                        },
+                        "required": ["reason", "who_ended_conversation", "termination_evidence"],
+                        "additionalProperties": False
+                    }
+                }
+            }
+        ],
         success_criteria={
             "booking_dates": {
                 "start": "2024-12-12",
@@ -52,7 +113,6 @@ def run_hotel_booking_test():
     evaluation = runner.run_conversation_test(goal, persona, max_turns=50)
 
     print("\n=== Test Results ===")
-    print(f"Success: {evaluation.success}")
     print(f"Goal Achieved: {evaluation.goal_achieved}")
     print(f"\nReasoning: {evaluation.reasoning}")
     print("\nConversation History:")

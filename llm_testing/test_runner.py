@@ -1,9 +1,10 @@
-from core.data_types import ConversationContext
+import json
+from core.data_types import ConversationContext, LLMResponse
 from core.goals import AgentTaskConfig
 from core.interfaces import LLMInterface
 from core.personas import CalleePersona
 from core.evaluator import ConversationEvaluation, ConversationEvaluator
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import time
 
 class GoalBasedTestRunner:
@@ -14,7 +15,7 @@ class GoalBasedTestRunner:
         self.evaluator = evaluator
         self.conversation_history: List[Dict[str, str]] = []
     
-    def _generate_callee_response(self, persona: CalleePersona) -> str:
+    def _generate_callee_response(self, persona: CalleePersona, agent_tools: Optional[List[Dict[str, Any]]] = []) -> LLMResponse:
         """Generate user response based on persona and conversation history"""
         # Create a system prompt for the user simulator
         system_prompt = f"""You are simulating a {persona.description}.
@@ -44,7 +45,8 @@ Remember:
         # Generate response using the same LLM
         response = self.llm.generate_response(
             context,
-            "Generate the next user response as this persona. Respond in character, don't explain or add notes."
+            "Generate the next user response as this persona. Respond in character, don't explain or add notes.",
+            agent_tools
         )
         
         # Apply any response delays specified in constraints
@@ -53,10 +55,10 @@ Remember:
         
         return response
 
-    def print_last_msg(self, persona: CalleePersona, turn_count: int):
+    def print_last_msg(self, turn_count: int, persona: Optional[CalleePersona] = None):
         last_message = self.conversation_history[-1]
         if last_message["speaker"] == "callee":
-            print(f"[{turn_count}] {persona.name}: {last_message['text']}")
+            print(f"[{turn_count}] {' '.join(persona.role.split('_')).title() if persona else 'Callee'}: {last_message['text']}")
         else:
             print(f"[{turn_count}] Voice Agent: {last_message['text']}")
 
@@ -71,7 +73,7 @@ Remember:
             "text": persona.initial_message
         })
         
-        self.print_last_msg(0)
+        self.print_last_msg(0, persona)
         turn_count = 1
         while turn_count < max_turns:
             # Get latest message
@@ -84,15 +86,15 @@ Remember:
                     conversation_history=self.conversation_history
                 )
                 
-                response = self.llm.generate_response(context, last_message)
+                response = self.llm.generate_response(context, last_message, task_config.tool_calls)
                 
                 self.conversation_history.append({
                     "speaker": "agent",
                     "text": response.response_content
                 })            
-            # If last message was from agent, generate callee response
+            # If last message was from the agent, generate callee response
             else:
-                response = self._generate_callee_response(persona)
+                response = self._generate_callee_response(persona, task_config.tool_calls)
                 self.conversation_history.append({
                     "speaker": "callee",
                     "text": response.response_content
@@ -100,11 +102,18 @@ Remember:
             
             turn_count += 1
             
-            if response.end_status:
-                print(f"Conversation ended by {response.end_status.who_ended}. Reason: {response.end_status.reason}. Evidence: {response.end_status.termination_evidence}")
+            if response.tools_called and response.tools_called[0].function.name == "end_conversation":
+                # remove last message from conversation history as it's None due to the tool call
+                self.conversation_history.pop()
+                
+                arguments = json.loads(response.tools_called[0].function.arguments)
+                reason = arguments.get('reason')
+                who_ended_conversation = arguments.get('who_ended_conversation')
+                termination_evidence = arguments.get('termination_evidence')
+                print(f"*** Conversation ended by {who_ended_conversation}. Reason: {reason}. Evidence: {termination_evidence}")
                 break
             else:
-                self.print_last_msg(turn_count)
+                self.print_last_msg(turn_count, persona)
         
         if turn_count >= max_turns:
             print(f"Warning: Conversation ended prematurely due to max turn limit of {max_turns}")

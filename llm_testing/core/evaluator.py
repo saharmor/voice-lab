@@ -41,7 +41,7 @@ class LLMConversationEvaluator(ConversationEvaluator):
             ConversationContext(system_prompt=self._get_evaluator_system_prompt()),
             prompt
         )
-        
+         
         return self._parse_evaluation_response(evaluation_response)
     
     def _get_evaluator_system_prompt(self) -> str:

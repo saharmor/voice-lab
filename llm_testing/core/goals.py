@@ -6,6 +6,7 @@ class AgentTaskConfig:
     """Represents the desired outcome of a conversation"""
     system_prompt: str
     initial_message: str
+    tool_calls: List[Dict[str, Any]]
     success_criteria: Dict[str, Any]
     context: Dict[str, Any] = field(default_factory=dict)
     

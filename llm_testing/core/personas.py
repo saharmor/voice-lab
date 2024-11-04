@@ -5,7 +5,6 @@ import json
 from pathlib import Path
 
 
-
 class Mood(Enum):
     """Enumeration of possible persona moods"""
     NEUTRAL = "neutral"
@@ -119,7 +118,7 @@ class PersonaTemplate:
             name=name,
             description="Hotel receptionist responsible for managing bookings",
             initial_message=f"Hi, {name} here, how can I help you today?",
-            role="receptionist",
+            role="hotel_receptionist",
             traits=[
                 "organized",
                 "detail-oriented",

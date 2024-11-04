@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional
 from core.data_types import ConversationContext, LLMResponse
 
 class LLMInterface(ABC):
     """Abstract interface for LLM interactions"""
     @abstractmethod
-    def generate_response(self, context: ConversationContext, user_input: str) -> LLMResponse:
+    def generate_response(self, context: ConversationContext, user_input: str, tools: Optional[List[Dict[str, Any]]] = []) -> LLMResponse:
         """
         Generate a response given the context and user input
         
