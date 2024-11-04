@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 from core.goals import AgentTaskConfig
 from core.personas import PersonaTemplate, Mood, ResponseStyle, PersonaConstraints
 from test_runner import GoalBasedTestRunner
@@ -20,7 +19,7 @@ def run_hotel_booking_test():
 
     # Create conversation goal
     goal = AgentTaskConfig(
-        system_prompt="You are a voice agent trying to book a hotel room for December 12th-24th",
+        system_prompt="You are a voice agent trying to book a hotel room for December 12th-24th. You are also okay with booking partial dates as long it's at least two nights.",
         initial_message="Hi, I'd like to book a room",
         success_criteria={
             "booking_dates": {

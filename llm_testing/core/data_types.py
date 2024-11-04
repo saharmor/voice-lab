@@ -63,9 +63,9 @@ class TestResult:
 
 @dataclass
 class ConversationEndStatus:
-    should_end: bool
     reason: Optional[str] = None
     who_ended: Optional[str] = None
+    termination_evidence: Optional[Dict[str, Any]] = None
 
     def __post_init__(self):
         if self.who_ended and self.who_ended not in ['callee', 'agent']:

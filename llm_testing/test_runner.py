@@ -53,6 +53,10 @@ Remember:
         
         return response
 
+    def print_last_msg(self, turn_count: int):
+        last_message = self.conversation_history[-1]
+        print(f"[{turn_count}] {last_message['speaker']}: {last_message['text']}")
+
     def _should_end_conversation(self, last_response: str) -> bool:
         """Determine if the conversation should end"""
         end_indicators = [
@@ -76,7 +80,8 @@ Remember:
             "text": persona.initial_message
         })
         
-        turn_count = 0
+        self.print_last_msg(0)
+        turn_count = 1
         while turn_count < max_turns:
             # Get latest message
             last_message = self.conversation_history[-1]["text"]
@@ -96,19 +101,18 @@ Remember:
                 })            
             # If last message was from agent, generate callee response
             else:
-                callee_response = self._generate_callee_response(persona)
+                response = self._generate_callee_response(persona)
                 self.conversation_history.append({
                     "speaker": "callee",
-                    "text": callee_response.response_content
+                    "text": response.response_content
                 })
             
             # print last message from conversation history
-            last_message = self.conversation_history[-1]["text"]
-            print(f"[{turn_count}]: {last_message}")
+            self.print_last_msg(turn_count)
             turn_count += 1
             
-            if callee_response.end_status.should_end:
-                print(f"Conversation ended by {callee_response.end_status.who_ended}. Reason: {callee_response.end_status.reason}")
+            if response.end_status:
+                print(f"Conversation ended by {response.end_status.who_ended}. Reason: {response.end_status.reason}")
                 break
 
         if turn_count >= max_turns:

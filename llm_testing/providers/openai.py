@@ -18,31 +18,64 @@ class OpenAIProvider(LLMInterface):
                 "content": msg["text"]
             })
 
-        # TODO move this to the agent level
+        # TODO move this to the task level
         tools = [
             {
                 "type": "function",
                 "function": {
-                    "name": "should_end_conversation",
-                    "description": "Determines if the conversation should end based on the context and message history",
+                    "name": "end_conversation",
+                    "description": """Call ONLY when conversation reaches clear end state by both sides exchanging farewell messages or one side explicitly stating they want to end the conversation.
+
+                    DO NOT CALL if:
+                    - Still negotiating/discussing
+                    - Questions pending
+                    - No explicit end statement
+                    - Just discussing options
+
+                    Must have clear evidence in final messages.
+            """,
+                    "strict": True,
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "should_end": {
-                                "type": "boolean",
-                                "description": "Whether the conversation should end"
-                            },
                             "reason": {
                                 "type": "string",
-                                "description": "The reason why the conversation should end"
+                                "description": "The specific reason why the conversation must end, which should directly reference one of the conditions listed above",
+                                "enum": [
+                                    "explicit_termination_request",
+                                    "service_not_available",
+                                    "price_agreement_not_reached",
+                                    "customer_declined_service",
+                                    "provider_declined_service"
+                                ]
                             },
                             "who_ended_conversation": {
                                 "type": "string",
                                 "enum": ["agent", "callee"],
-                                "description": "Who ended the conversation, the agent or the callee"
+                                "description": "Who initiated the conversation ending. Must be supported by clear evidence in the conversation."
+                            },
+                            "termination_evidence": {
+                                "type": "object",
+                                "properties": {
+                                    "final_messages": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "description": "Last 1-2 messages showing clear end reason"
+                                    },
+                                    "termination_type": {
+                                        "type": "string",
+                                        "enum": ["successful_completion", "early_termination"],
+                                        "description": "Whether successful completion or early termination"
+                                    }
+                                },
+                                "required": ["final_messages", "termination_type"],
+                                "additionalProperties": False
                             }
                         },
-                        "required": ["should_end", "reason", "who_ended_conversation"]
+                        "required": ["reason", "who_ended_conversation", "termination_evidence"],
+                        "additionalProperties": False
                     }
                 }
             }
@@ -57,15 +90,12 @@ class OpenAIProvider(LLMInterface):
             
             response_mesg = chat_completion.choices[0].message
             if response_mesg.tool_calls:
-                arguments = json.loads(response_mesg.tool_calls[0]['function']['arguments'])
-                should_end = arguments.get('should_end')
+                arguments = json.loads(response_mesg.tool_calls[0].function.arguments)
                 reason = arguments.get('reason')
                 who_ended_conversation = arguments.get('who_ended_conversation')
+                termination_evidence = arguments.get('termination_evidence')
+                return LLMResponse(chat_completion.choices[0].message.content, ConversationEndStatus(reason, who_ended_conversation, termination_evidence))
             else:
-                should_end = False
-                reason = None
-                who_ended_conversation = None
-
-            return LLMResponse(chat_completion.choices[0].message.content, ConversationEndStatus(should_end, reason, who_ended_conversation))
+                return LLMResponse(chat_completion.choices[0].message.content, None)
         except Exception as e:
             raise Exception(f"OpenAI API error: {str(e)}")

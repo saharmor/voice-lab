@@ -76,7 +76,7 @@ Conversation:
     
     def _parse_evaluation_response(self, response: str) -> ConversationEvaluation:
         try:
-            evaluation_data = json.loads(response)
+            evaluation_data = json.loads(response.response_content)
             return ConversationEvaluation(
                 goal_achieved=evaluation_data["goal_achieved"],
                 reasoning=evaluation_data["reasoning"],
