@@ -102,9 +102,10 @@ Remember:
                     "speaker": "callee",
                     "text": callee_response
                 })
-                
-                if self._should_end_conversation(callee_response):
-                    break
+            
+            if callee_response.end_status.should_end:
+                print(f"Conversation ended by {callee_response.end_status.who_ended}. Reason: {callee_response.end_status.reason}")
+                break
             
             turn_count += 1
         
