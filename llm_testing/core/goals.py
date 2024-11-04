@@ -16,17 +16,3 @@ class AgentTaskConfig:
     #     "max_turns": 10
     # }
 
-@dataclass
-class Persona:
-    """Represents the character/role being played by the conversation participant"""
-    name: str
-    description: str
-    traits: List[str]
-    constraints: Dict[str, Any]
-    
-    # Example for hotel receptionist:
-    # {
-    #     "available_dates": {"start": "2024-12-12", "end": "2024-12-14"},
-    #     "mood": "angry",
-    #     "response_style": "curt"
-    # }

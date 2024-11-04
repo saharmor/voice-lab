@@ -1,9 +1,9 @@
 import json
-from typing import List, Dict, Any
+from typing import List, Dict
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
-from core.goals import AgentTaskConfig, Persona
+from core.goals import AgentTaskConfig
 from core.interfaces import LLMInterface
 from core.data_types import ConversationContext
 
@@ -25,8 +25,7 @@ class ConversationEvaluator(ABC):
     @abstractmethod
     def evaluate(self, 
                 conversation_history: List[Dict[str, str]],
-                task_config: AgentTaskConfig,
-                persona: Persona) -> ConversationEvaluation:
+                task_config: AgentTaskConfig) -> ConversationEvaluation:
         pass
 
 class LLMConversationEvaluator(ConversationEvaluator):
@@ -36,9 +35,8 @@ class LLMConversationEvaluator(ConversationEvaluator):
     
     def evaluate(self, 
                 conversation_history: List[Dict[str, str]],
-                task_config: AgentTaskConfig,
-                persona: Persona) -> ConversationEvaluation:
-        prompt = self._create_evaluation_prompt(conversation_history, task_config, persona)
+                task_config: AgentTaskConfig) -> ConversationEvaluation:
+        prompt = self._create_evaluation_prompt(conversation_history, task_config)
         evaluation_response = self.llm.generate_response(
             ConversationContext(system_prompt=self._get_evaluator_system_prompt()),
             prompt
@@ -61,8 +59,7 @@ Provide your evaluation in JSON format with the following structure:
     
     def _create_evaluation_prompt(self, 
                                 conversation_history: List[Dict[str, str]],
-                                task_config: AgentTaskConfig,
-                                persona: Persona) -> str:
+                                task_config: AgentTaskConfig) -> str:
         return f"""Please evaluate the following conversation according to the provided goal and success criteria:
 
 Goal: {task_config.system_prompt}

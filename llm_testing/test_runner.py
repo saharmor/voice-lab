@@ -1,7 +1,7 @@
 from core.data_types import ConversationContext
 from core.goals import AgentTaskConfig
 from core.interfaces import LLMInterface
-from core.personas import Persona
+from core.personas import CalleePersona
 from core.evaluator import ConversationEvaluation, ConversationEvaluator
 from typing import List, Dict, Any
 import time
@@ -14,7 +14,7 @@ class GoalBasedTestRunner:
         self.evaluator = evaluator
         self.conversation_history: List[Dict[str, str]] = []
     
-    def _generate_callee_response(self, persona: Persona) -> str:
+    def _generate_callee_response(self, persona: CalleePersona) -> str:
         """Generate user response based on persona and conversation history"""
         # Create a system prompt for the user simulator
         system_prompt = f"""You are simulating a {persona.description}.
@@ -67,16 +67,17 @@ Remember:
 
     def run_conversation_test(self,
                             task_config: AgentTaskConfig,
-                            persona: Persona,
-                            max_turns: int = 10) -> ConversationEvaluation:
+                            persona: CalleePersona,
+                            max_turns: int = 999) -> ConversationEvaluation:
         self.conversation_history = []
         
         self.conversation_history.append({
             "speaker": "callee",
-            "text": f"Hi {persona.name} here, how can I help you today?"
+            "text": persona.initial_message
         })
         
-        for _ in range(max_turns):
+        turn_count = 0
+        while turn_count < max_turns:
             # Get latest message
             last_message = self.conversation_history[-1]["text"]
             
@@ -104,9 +105,18 @@ Remember:
                 
                 if self._should_end_conversation(callee_response):
                     break
+            
+            turn_count += 1
+        
+        # Print the entire conversation history
+        print("\n=== Conversation History ===")
+        for turn in self.conversation_history:
+            print(f"{turn['speaker']}: {turn['text']}")
+
+        if turn_count >= max_turns:
+            print(f"Warning: Conversation ended prematurely due to max turn limit of {max_turns}")
         
         return self.evaluator.evaluate(
             self.conversation_history,
-            task_config,
-            persona
+            task_config
         )

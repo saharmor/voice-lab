@@ -4,6 +4,8 @@ from enum import Enum
 import json
 from pathlib import Path
 
+
+
 class Mood(Enum):
     """Enumeration of possible persona moods"""
     NEUTRAL = "neutral"
@@ -37,13 +39,30 @@ class PersonaConstraints:
     response_delay_ms: Optional[int] = None
     custom_constraints: Dict[str, Any] = field(default_factory=dict)
 
+    def from_dict(data: Dict[str, Any]) -> 'PersonaConstraints':
+        """Create persona from dictionary format"""
+        constraints = PersonaConstraints(
+            available_dates=data["constraints"].get("available_dates"),
+            available_hours=data["constraints"].get("available_hours"),
+            max_booking_duration=data["constraints"].get("max_booking_duration"),
+            min_booking_duration=data["constraints"].get("min_booking_duration"),
+            price_range=data["constraints"].get("price_range"),
+            available_inventory=data["constraints"].get("available_inventory"),
+            response_delay_ms=data["constraints"].get("response_delay_ms"),
+            custom_constraints=data["constraints"].get("custom_constraints", {})
+        )
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert constraints to dictionary format"""
+        return {k: v for k, v in self.__dict__.items() if v is not None}
+
 @dataclass
-class Persona:
+class CalleePersona:
     """Represents a character/role in the conversation"""
     name: str
     description: str
     role: str
     traits: List[str]
+    initial_message: str
     mood: Mood
     response_style: ResponseStyle
     constraints: PersonaConstraints
@@ -56,45 +75,26 @@ class Persona:
             "name": self.name,
             "description": self.description,
             "role": self.role,
-            "traits": self.traits,
+            "traits": self.traits,  
+            "initial_message": self.initial_message,
             "mood": self.mood.value,
             "response_style": self.response_style.value,
-            "constraints": {
-                "available_dates": self.constraints.available_dates,
-                "available_hours": self.constraints.available_hours,
-                "max_booking_duration": self.constraints.max_booking_duration,
-                "min_booking_duration": self.constraints.min_booking_duration,
-                "price_range": self.constraints.price_range,
-                "available_inventory": self.constraints.available_inventory,
-                "response_delay_ms": self.constraints.response_delay_ms,
-                "custom_constraints": self.constraints.custom_constraints
-            },
+            "constraints": self.constraints.to_dict(),
             "background_info": self.background_info,
             "knowledge_base": self.knowledge_base
         }
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Persona':
-        """Create persona from dictionary format"""
-        constraints = PersonaConstraints(
-            available_dates=data["constraints"].get("available_dates"),
-            available_hours=data["constraints"].get("available_hours"),
-            max_booking_duration=data["constraints"].get("max_booking_duration"),
-            min_booking_duration=data["constraints"].get("min_booking_duration"),
-            price_range=data["constraints"].get("price_range"),
-            available_inventory=data["constraints"].get("available_inventory"),
-            response_delay_ms=data["constraints"].get("response_delay_ms"),
-            custom_constraints=data["constraints"].get("custom_constraints", {})
-        )
-        
+    def from_dict(cls, data: Dict[str, Any]) -> 'CalleePersona':
         return cls(
             name=data["name"],
             description=data["description"],
             role=data["role"],
             traits=data["traits"],
+            initial_message=data["initial_message"],
             mood=Mood(data["mood"]),
             response_style=ResponseStyle(data["response_style"]),
-            constraints=constraints,
+            constraints=PersonaConstraints.from_dict(data["constraints"]),
             background_info=data.get("background_info"),
             knowledge_base=data.get("knowledge_base", {})
         )
@@ -108,16 +108,17 @@ class PersonaTemplate:
         mood: Mood = Mood.PROFESSIONAL,
         response_style: ResponseStyle = ResponseStyle.FORMAL,
         constraints: Optional[PersonaConstraints] = None
-    ) -> Persona:
+    ) -> CalleePersona:
         """Create a hotel receptionist persona"""
         default_constraints = PersonaConstraints(
             available_hours=["09:00-17:00"],
             response_delay_ms=1000
         )
         
-        return Persona(
+        return CalleePersona(
             name=name,
             description="Hotel receptionist responsible for managing bookings",
+            initial_message=f"Hi, {name} here, how can I help you today?",
             role="receptionist",
             traits=[
                 "organized",
@@ -144,16 +145,17 @@ class PersonaTemplate:
         mood: Mood = Mood.HELPFUL,
         response_style: ResponseStyle = ResponseStyle.PROFESSIONAL,
         constraints: Optional[PersonaConstraints] = None
-    ) -> Persona:
+    ) -> CalleePersona:
         """Create a pharmacy clerk persona"""
         default_constraints = PersonaConstraints(
             available_hours=["08:00-20:00"],
             response_delay_ms=500
         )
         
-        return Persona(
+        return CalleePersona(
             name=name,
             description="Pharmacy clerk assisting with medication inquiries",
+            initial_message=f"Hi, {name} here, how can I help you today?",
             role="pharmacy_clerk",
             traits=[
                 "knowledgeable",
@@ -179,17 +181,17 @@ class PersonaLibrary:
     
     def __init__(self, storage_path: Optional[Path] = None):
         self.storage_path = storage_path or Path("personas")
-        self.personas: Dict[str, Persona] = {}
+        self.personas: Dict[str, CalleePersona] = {}
         
         if self.storage_path.exists():
             self._load_personas()
     
-    def add_persona(self, persona: Persona) -> None:
+    def add_persona(self, persona: CalleePersona) -> None:
         """Add a persona to the library"""
         self.personas[persona.name] = persona
         self._save_personas()
     
-    def get_persona(self, name: str) -> Optional[Persona]:
+    def get_persona(self, name: str) -> Optional[CalleePersona]:
         """Retrieve a persona by name"""
         return self.personas.get(name)
     
@@ -198,7 +200,7 @@ class PersonaLibrary:
         for file_path in self.storage_path.glob("*.json"):
             with open(file_path, "r") as f:
                 data = json.load(f)
-                persona = Persona.from_dict(data)
+                persona = CalleePersona.from_dict(data)
                 self.personas[persona.name] = persona
     
     def _save_personas(self) -> None:
@@ -210,7 +212,7 @@ class PersonaLibrary:
                 json.dump(persona.to_dict(), f, indent=2)
 
 # Helper function to create an angry receptionist persona
-def create_angry_receptionist(available_dates: Dict[str, str]) -> Persona:
+def create_angry_receptionist(available_dates: Dict[str, str]) -> CalleePersona:
     """Create an angry receptionist persona with specific date constraints"""
     constraints = PersonaConstraints(
         available_dates=available_dates,
@@ -222,7 +224,7 @@ def create_angry_receptionist(available_dates: Dict[str, str]) -> Persona:
         }
     )
     
-    return Persona(
+    return CalleePersona(
         name="Angry Receptionist",
         description="An irritable hotel receptionist having a bad day",
         role="receptionist",

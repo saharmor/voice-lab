@@ -7,6 +7,7 @@ class OpenAIProvider(LLMInterface):
     def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
         self.model = model
         openai.api_key = api_key
+        self.client = openai.OpenAI(api_key=api_key)
 
     def generate_response(self, context: ConversationContext, user_input: str) -> str:
         # Format conversation history
@@ -15,18 +16,16 @@ class OpenAIProvider(LLMInterface):
         # Add conversation history
         for msg in context.conversation_history:
             messages.append({
-                "role": "assistant" if msg["speaker"] == "agent" else "callee",
+                "role": "assistant" if msg["speaker"] == "agent" else "user",
                 "content": msg["text"]
             })
         
-        # Add current user input
-        messages.append({"role": "user", "content": user_input})
-        
         try:
-            response = openai.ChatCompletion.create(
+            chat_completion = self.client.chat.completions.create(
+                messages=messages,
                 model=self.model,
-                messages=messages
             )
-            return response.choices[0].message.content
+            
+            return chat_completion.choices[0].message.content
         except Exception as e:
             raise Exception(f"OpenAI API error: {str(e)}")
