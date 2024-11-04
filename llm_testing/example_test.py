@@ -15,6 +15,9 @@ def run_hotel_booking_test():
     agent_llm = OpenAIProvider(api_key, "gpt-4o-mini")
     evaluator_llm = OpenAIProvider(api_key, "gpt-4o")
 
+    # TODO - start by generating a matrix of agent + task + persona. I.e. same prompt, but different scenarions (e.g. room avaialble, unavailable, etc.)
+    # I'll just need to create another class for Agent that accepts a prompt and maybe LLM config like model and temperature
+
     # Create conversation goal
     goal = AgentTaskConfig(
         system_prompt="You are a voice agent trying to book a hotel room for December 12th-24th",
@@ -47,7 +50,7 @@ def run_hotel_booking_test():
     evaluator = LLMConversationEvaluator(evaluator_llm)
     runner = GoalBasedTestRunner(agent_llm, evaluator)
 
-    evaluation = runner.run_conversation_test(goal, persona)
+    evaluation = runner.run_conversation_test(goal, persona, max_turns=50)
 
     print("\n=== Test Results ===")
     print(f"Success: {evaluation.success}")
