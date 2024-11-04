@@ -92,27 +92,24 @@ Remember:
                 
                 self.conversation_history.append({
                     "speaker": "agent",
-                    "text": response
-                })
-            
+                    "text": response.response_content
+                })            
             # If last message was from agent, generate callee response
             else:
                 callee_response = self._generate_callee_response(persona)
                 self.conversation_history.append({
                     "speaker": "callee",
-                    "text": callee_response
+                    "text": callee_response.response_content
                 })
+            
+            # print last message from conversation history
+            last_message = self.conversation_history[-1]["text"]
+            print(f"[{turn_count}]: {last_message}")
+            turn_count += 1
             
             if callee_response.end_status.should_end:
                 print(f"Conversation ended by {callee_response.end_status.who_ended}. Reason: {callee_response.end_status.reason}")
                 break
-            
-            turn_count += 1
-        
-        # Print the entire conversation history
-        print("\n=== Conversation History ===")
-        for turn in self.conversation_history:
-            print(f"{turn['speaker']}: {turn['text']}")
 
         if turn_count >= max_turns:
             print(f"Warning: Conversation ended prematurely due to max turn limit of {max_turns}")
