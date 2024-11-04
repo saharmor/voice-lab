@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 
 from core.goals import AgentTaskConfig
 from core.interfaces import LLMInterface
-from core.data_types import ConversationContext
+from core.data_types import ConversationContext, LLMResponse
 
 @dataclass
 class EvaluationMetadata:
@@ -74,20 +74,16 @@ Conversation:
             f"{turn['speaker']}: {turn['text']}" for turn in history
         ])
     
-    def _parse_evaluation_response(self, response: str) -> ConversationEvaluation:
+    def _parse_evaluation_response(self, response: LLMResponse) -> ConversationEvaluation:
         try:
-            evaluation_data = json.loads(response.response_content)
+            cleaned_str = response.response_content.strip('`').strip('json\n')
+            evaluation_data = json.loads(cleaned_str)
             return ConversationEvaluation(
                 goal_achieved=evaluation_data["goal_achieved"],
                 reasoning=evaluation_data["reasoning"],
                 metadata=evaluation_data.get("metadata", {})
             )
         except json.JSONDecodeError:
-            return ConversationEvaluation(
-                success=False,
-                goal_achieved=False,
-                reasoning="Failed to parse evaluation response",
-                metadata={"error": "Invalid evaluation format"}
-            )
+            raise Exception(f"Failed to parse evaluation response. Response: {response.response_content}")
 
 

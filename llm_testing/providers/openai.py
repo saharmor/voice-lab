@@ -18,6 +18,9 @@ class OpenAIProvider(LLMInterface):
                 "content": msg["text"]
             })
 
+        if user_input:
+            messages.append({"role": "user", "content": user_input})
+
         # TODO move this to the task level
         tools = [
             {

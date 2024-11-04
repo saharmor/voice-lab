@@ -53,21 +53,12 @@ Remember:
         
         return response
 
-    def print_last_msg(self, turn_count: int):
+    def print_last_msg(self, persona: CalleePersona, turn_count: int):
         last_message = self.conversation_history[-1]
-        print(f"[{turn_count}] {last_message['speaker']}: {last_message['text']}")
-
-    def _should_end_conversation(self, last_response: str) -> bool:
-        """Determine if the conversation should end"""
-        end_indicators = [
-            "goodbye",
-            "thank you, goodbye",
-            "have a nice day",
-            "bye",
-            "end of conversation",
-            "*hangs up*"
-        ]
-        return any(indicator in last_response.lower() for indicator in end_indicators)
+        if last_message["speaker"] == "callee":
+            print(f"[{turn_count}] {persona.name}: {last_message['text']}")
+        else:
+            print(f"[{turn_count}] Voice Agent: {last_message['text']}")
 
     def run_conversation_test(self,
                             task_config: AgentTaskConfig,
@@ -107,14 +98,14 @@ Remember:
                     "text": response.response_content
                 })
             
-            # print last message from conversation history
-            self.print_last_msg(turn_count)
             turn_count += 1
             
             if response.end_status:
-                print(f"Conversation ended by {response.end_status.who_ended}. Reason: {response.end_status.reason}")
+                print(f"Conversation ended by {response.end_status.who_ended}. Reason: {response.end_status.reason}. Evidence: {response.end_status.termination_evidence}")
                 break
-
+            else:
+                self.print_last_msg(turn_count)
+        
         if turn_count >= max_turns:
             print(f"Warning: Conversation ended prematurely due to max turn limit of {max_turns}")
         
