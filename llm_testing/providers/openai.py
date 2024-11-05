@@ -1,7 +1,9 @@
 from typing import Any, Dict, List, Optional
 import openai
+from pydantic import BaseModel
 from core.interfaces import LLMInterface
 from core.data_types import ConversationContext, EntitySpeaking, LLMResponse
+
 
 class OpenAIProvider(LLMInterface):
     def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
@@ -23,6 +25,18 @@ class OpenAIProvider(LLMInterface):
 
         return self.generate_response(messages, tools)
 
+    def generate_response_with_structured_output(self, messages: List[Dict[str, Any]], response_format: BaseModel):
+        try:
+            chat_completion = self.client.beta.chat.completions.parse(
+                messages=messages,
+                model=self.model,
+                response_format=response_format,
+            )
+
+            return chat_completion.choices[0].message.parsed
+        except Exception as e:
+            raise Exception(f"OpenAI API error: {str(e)}")
+        
     def generate_response(self, messages: List[Dict[str, Any]], tools: Optional[List[Dict[str, Any]]] = None) -> str:        
         try:
             chat_completion = self.client.chat.completions.create(
@@ -35,3 +49,4 @@ class OpenAIProvider(LLMInterface):
             return LLMResponse(response_msg.content, response_msg.tool_calls)
         except Exception as e:
             raise Exception(f"OpenAI API error: {str(e)}")
+            

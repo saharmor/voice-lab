@@ -15,6 +15,7 @@ def run_tests(print_conversation: bool = False):
     # Create LLM instances for agent and evaluator
     agent_llm = OpenAIProvider(api_key, "gpt-4o-mini")
     evaluator_llm = OpenAIProvider(api_key, "gpt-4o-mini")
+    # evaluator_llm = OpenAIProvider(api_key, "o1-preview")
 
     # Load test details from a JSON file
     with open('llm_testing/test_details.json', 'r') as file:  # Adjust the path as necessary
@@ -37,11 +38,13 @@ def run_tests(print_conversation: bool = False):
         evaluator = LLMConversationEvaluator(evaluator_llm)
         runner = GoalBasedTestRunner(agent_llm, evaluator)
 
-        evaluation = runner.run_conversation_test(goal, persona, max_turns=50)
+        eval_response = runner.run_conversation_test(goal, persona, max_turns=50)
 
-        print("\n=== Test Results ===")
-        print(f"Goal Achieved: {evaluation.goal_achieved}")
-        print(f"\nReasoning: {evaluation.reasoning}")
+        print("\n=== Evaluation report ===")
+        print(f"Summary: {eval_response.summary}")
+        for metric in eval_response.evaluation_results:
+            print(f"--> Metric: {metric.name}, Output: {metric.output},\nReasoning: {metric.reasoning},\nEvidence: {metric.evidence}\n")
+            
         if print_conversation:
             print("\nConversation History:")
             for turn in runner.conversation_history:

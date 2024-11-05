@@ -5,7 +5,6 @@ from core.interfaces import LLMInterface
 from core.personas import CalleePersona
 from core.evaluator import ConversationEvaluation, ConversationEvaluator
 from typing import List, Dict, Any, Optional
-import time
 
 class GoalBasedTestRunner:
     def __init__(self, 

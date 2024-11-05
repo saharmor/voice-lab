@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel
 from core.data_types import ConversationContext, EntitySpeaking, LLMResponse
 
 class LLMInterface(ABC):
@@ -12,6 +14,10 @@ class LLMInterface(ABC):
                                                      
         pass
 
+    @abstractmethod
+    def generate_response_with_structured_output(self, messages: List[Dict[str, Any]], response_format: BaseModel):
+        pass
+    
     @abstractmethod
     def generate_response(self, messages: List[Dict[str, Any]], tools: Optional[List[Dict[str, Any]]] = []) -> LLMResponse:
         """
