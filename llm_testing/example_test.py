@@ -42,7 +42,7 @@ def run_tests(print_conversation: bool = False):
         eval_response = runner.run_conversation_test(goal, persona, max_turns=50)
 
         print("\n=== Evaluation report ===")
-        print(f"Summary: {eval_response.summary}")
+        print(f"Summary: {eval_response.summary}\n")
         for metric in eval_response.evaluation_results:
             # add a ✅ emoji if the metric is successful based on the eval_output_type
             success_indicator = ""
@@ -51,7 +51,7 @@ def run_tests(print_conversation: bool = False):
             else: # range_score
                 success_indicator = "✅" if int(metric.eval_output) > metric.range_score_success_threshold else "❌"
 
-            print(f"--> {success_indicator} Metric: {metric.name}, Output score: {metric.eval_output}\nReasoning: {metric.reasoning}\nEvidence: {metric.evidence}\n")
+            print(f"--> {success_indicator} Metric: [{metric.name}], Output score: [{metric.eval_output}]\nReasoning: {metric.reasoning}\nEvidence: {metric.evidence}\n")
             
         if print_conversation:
             print("\nConversation History:")

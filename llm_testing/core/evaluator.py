@@ -34,8 +34,9 @@ class MetricResult(BaseModel):
     name: str = Field(description="name of the metric")
     eval_output_type: str = Field(description="either 'success_flag' or 'range_score'")
     eval_output: str = Field(description="boolean if success flag or numeric score if range_score")
+    eval_output_success_threshold: int = Field(description="threshold for success if eval_output_type is range_score")
     reasoning: str = Field(description="explanation of how the output was determined") # TODO consider using CoT for better reasoning https://platform.openai.com/docs/guides/structured-outputs#chain-of-thought
-    evidence: str = Field(description="evidence/quotes from the conversation history supporting your output score")
+    evidence: str = Field(description="evidence/quotes from the conversation history supporting your output score. Can be empty if no evidence is needed.")
 
 class EvaluationResponse(BaseModel):
     summary: str = Field(description="summary of the overall conversation")
