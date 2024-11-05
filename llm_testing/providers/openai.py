@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional
 import openai
 from core.interfaces import LLMInterface
-from core.data_types import ConversationContext, LLMResponse
+from core.data_types import ConversationContext, EntitySpeaking, LLMResponse
 
 class OpenAIProvider(LLMInterface):
     def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
@@ -9,18 +9,21 @@ class OpenAIProvider(LLMInterface):
         openai.api_key = api_key
         self.client = openai.OpenAI(api_key=api_key)
 
-    def generate_response(self, context: ConversationContext, user_input: str, tools: Optional[List[Dict[str, Any]]] = None) -> str:
-        # Add conversation history
+    def generate_response_with_conversation_history(self, context: ConversationContext,
+                                                     entity_speaking: EntitySpeaking,
+                                                     tools: Optional[List[Dict[str, Any]]] = None,
+                                                     user_input: str = None) -> List[Dict[str, Any]]:
         messages = [{"role": "system", "content": context.system_prompt}]
         for msg in context.conversation_history:
-            messages.append({
-                "role": "assistant" if msg["speaker"] == "agent" else "user",
-                "content": msg["text"]
-            })
+            role = "assistant" if msg["speaker"] == entity_speaking.value else "user"
+            messages.append({"role": role, "content": msg["text"]})
 
         if user_input:
             messages.append({"role": "user", "content": user_input})
-        
+
+        return self.generate_response(messages, tools)
+
+    def generate_response(self, messages: List[Dict[str, Any]], tools: Optional[List[Dict[str, Any]]] = None) -> str:        
         try:
             chat_completion = self.client.chat.completions.create(
                 messages=messages,

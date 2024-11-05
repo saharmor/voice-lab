@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Callable, Any
 from datetime import datetime
+from enum import Enum
 
 @dataclass
 class ConversationContext:
@@ -80,3 +81,9 @@ class LLMResponse:
         """
         self.response_content = response_content
         self.tools_called = tools_called
+
+# TODO get rid of all 'callee' and 'agent' literal strings
+class EntitySpeaking(Enum):
+    """Represents the entity speaking in the conversation"""
+    VOICE_AGENT = "voice_agent"
+    CALLEE = "callee"

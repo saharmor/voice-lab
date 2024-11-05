@@ -37,9 +37,10 @@ class LLMConversationEvaluator(ConversationEvaluator):
                 conversation_history: List[Dict[str, str]],
                 task_config: AgentTaskConfig) -> ConversationEvaluation:
         prompt = self._create_evaluation_prompt(conversation_history, task_config)
+        system_prompt = self._get_evaluator_system_prompt()
         evaluation_response = self.llm.generate_response(
-            ConversationContext(system_prompt=self._get_evaluator_system_prompt()),
-            prompt
+            [{"role": "system", "content": system_prompt},
+             {"role": "user", "content": prompt}]
         )
          
         return self._parse_evaluation_response(evaluation_response)
