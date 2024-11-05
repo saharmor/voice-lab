@@ -23,11 +23,13 @@ def run_tests(print_conversation: bool = False):
     for test_name, test_data in test_details.items():
         print(f"\n=== Running Test: {test_name} ===")
 
+        agent_config = test_data["agent"]
         goal = AgentTaskConfig(
-            system_prompt=test_data["system_prompt"],
-            initial_message=test_data["initial_message"],
-            tool_calls=test_data["tool_calls"],
-            success_criteria=test_data["success_criteria"]
+            system_prompt=agent_config["system_prompt"],
+            initial_message=agent_config["initial_message"],
+            tool_calls=agent_config["tool_calls"],
+            success_criteria=agent_config["success_criteria"],
+            additional_context=agent_config["additional_context"]
         )
         
         persona = CalleePersona(**test_data["persona"])

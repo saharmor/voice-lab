@@ -1,8 +1,9 @@
 {
     "angry hotel receptionist": {
-        "system_prompt": "You are a voice agent trying to book a hotel room for December 12th-24th. You are also okay with booking partial dates as long it's at least two nights. Make sure to confirm the price and booking reference.",
-        "initial_message": "Hi, I'd like to book a room",
-        "tool_calls": [
+        "agent": {
+            "system_prompt": "You are a voice agent trying to book a hotel room for yourself on December 12th-24th. Make sure to confirm the price and booking reference when booking.",
+            "initial_message": "Hi, I'd like to book a room",
+            "tool_calls": [
             {
                 "type": "function",
                 "function": {
@@ -17,7 +18,7 @@
                                 "description": "The specific reason why the conversation must end, which should directly reference one of the conditions listed above",
                                 "enum": [
                                     "explicit_termination_request",
-                                    "service_not_available",
+                                    "service_not_available", 
                                     "price_agreement_not_reached",
                                     "customer_declined_service",
                                     "provider_declined_service"
@@ -55,20 +56,27 @@
             }
         ],
         "success_criteria": {
-            "booking_dates": {
-                "start": "2024-12-12",
-                "end": "2024-12-24"
-            },
             "required_confirmations": ["booking_reference", "price"]
         },
-        "persona": {
+        "additional_context": {
+            "max_price_per_night": "$250",
+            "okay_with_partial_dates": true,
+            "min_stay_nights": 2,
+            "credit_card_details": {
+                "name": "John Smith",
+                "number": "1234-5678-9101-1121",
+                "expiration": "12/25"
+            }
+        }
+    },
+    "persona": {
             "name": "John Smith",
             "initial_message": "Hi, I'm John Smith, how can I help you today?",
-            "description": "An irritable hotel receptionist having a bad day",
+            "description": "Irritable hotel receptionist having a bad day",
             "role": "receptionist",
             "traits": [
                 "impatient",
-                "curt",
+                "curt", 
                 "easily annoyed",
                 "interrupts frequently"
             ],
@@ -80,6 +88,7 @@
                     "start": "2024-12-12",
                     "end": "2024-12-14"
                 },
+                "price_per_night": "$270",
                 "available_hours": ["09:00-17:00"]
             }
         }

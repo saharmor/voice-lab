@@ -1,5 +1,5 @@
 # voice-lab
-Testing and evaluation framework for voice agents 
+A testing and evaluation framework for voice agents.
 
 # Installation
 1. Clone the repository:
@@ -15,8 +15,7 @@ Testing and evaluation framework for voice agents
    pip install -r requirements.txt
    ```
 
-3. Set up your environment variables:
-Create a .env file in the project root directory and add the following environment variables:
+3. Set up your environment variables by creating a .env file in the project root directory and adding the following environment variables:
     ```
     OPENAI_API_KEY=your_openai_api_key
     ```

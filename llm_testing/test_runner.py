@@ -18,7 +18,7 @@ class GoalBasedTestRunner:
     def _generate_callee_response(self, persona: CalleePersona, agent_tools: Optional[List[Dict[str, Any]]] = []) -> LLMResponse:
         """Generate user response based on persona and conversation history"""
         # Create a system prompt for the user simulator
-        system_prompt = f"""You are simulating a {persona.description}.
+        system_prompt = f"""You are simulating a {persona.description[:1].lower() + persona.description[1:] if persona.description else 'person'}
 Your mood is {persona.mood} and your communication style is {persona.response_style}.
 You have the following additional context: {persona.additional_context}
 You should respond as this persona would, maintaining consistent behavior and knowledge.
@@ -53,7 +53,7 @@ Remember:
 
     def print_last_msg(self, turn_count: int, persona: Optional[CalleePersona] = None):
         last_message = self.conversation_history[-1]
-        if last_message["speaker"] == "callee":
+        if last_message["speaker"] == EntitySpeaking.CALLEE.value:
             print(f"[{turn_count}] {' '.join(persona.role.split('_')).title() if persona else 'Callee'}: {last_message['text']}")
         else:
             print(f"[{turn_count}] Voice Agent: {last_message['text']}")
@@ -65,7 +65,7 @@ Remember:
         self.conversation_history = []
         
         self.conversation_history.append({
-            "speaker": "callee",
+            "speaker": EntitySpeaking.CALLEE.value,
             "text": persona.initial_message
         })
         
@@ -73,9 +73,9 @@ Remember:
         turn_count = 1
         while turn_count < max_turns:
             # If last message was from callee, generate agent response
-            if self.conversation_history[-1]["speaker"] == "callee":
+            if self.conversation_history[-1]["speaker"] == EntitySpeaking.CALLEE.value:
                 context = ConversationContext(
-                    system_prompt=task_config.system_prompt,
+                    system_prompt=task_config.generate_system_prompt(),
                     conversation_history=self.conversation_history
                 )
                 
@@ -83,14 +83,14 @@ Remember:
                                                                                  task_config.tool_calls)
                 
                 self.conversation_history.append({
-                    "speaker": "agent",
+                    "speaker": EntitySpeaking.VOICE_AGENT.value,
                     "text": response.response_content
                 })            
             # If last message was from the agent, generate callee response
             else:
                 response = self._generate_callee_response(persona, task_config.tool_calls)
                 self.conversation_history.append({
-                    "speaker": "callee",
+                    "speaker": EntitySpeaking.CALLEE.value,
                     "text": response.response_content
                 })
             

@@ -63,7 +63,7 @@ Provide your evaluation in JSON format with the following structure:
                                 task_config: AgentTaskConfig) -> str:
         return f"""Please evaluate the following conversation according to the provided goal and success criteria:
 
-Goal: {task_config.system_prompt}
+Task and additional context: {task_config.generate_system_prompt()}
 Success Criteria: {json.dumps(task_config.success_criteria, indent=2)}
 
 Conversation:

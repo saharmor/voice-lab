@@ -8,7 +8,6 @@ class ConversationContext:
     """Represents the context of the conversation"""
     system_prompt: str
     conversation_history: List[Dict[str, str]] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
 
 @dataclass
 class TestExpectation:
