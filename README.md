@@ -103,7 +103,8 @@ To add a new scenario (e.g., a "chill pharmacy clerk"), follow these steps:
    }
    ```
 # Contribution ideas
-- [x] Add more test scenarios
+- [ ] Dyanmic metrics for json (e.g. `metrics.json`)
+- [ ] Add more test scenarios
 - [ ] Integrate [Tencent's 1M Personas](https://huggingface.co/datasets/proj-persona/PersonaHub) for more detailed and complex scenarios
 - [ ] Improve test framework
   - [ ] Add parallel test execution
