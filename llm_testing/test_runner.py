@@ -113,5 +113,6 @@ Remember:
         
         return self.evaluator.evaluate(
             self.conversation_history,
-            task_config
+            task_config,
+            persona
         )

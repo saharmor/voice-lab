@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field
 
 from core.goals import AgentTaskConfig
 from core.interfaces import LLMInterface
+from core.data_types import EntitySpeaking
+from core.personas import CalleePersona
 
 @dataclass
 class EvaluationMetadata:
@@ -26,7 +28,8 @@ class ConversationEvaluator(ABC):
     @abstractmethod
     def evaluate(self, 
                 conversation_history: List[Dict[str, str]],
-                task_config: AgentTaskConfig) -> ConversationEvaluation:
+                task_config: AgentTaskConfig,
+                persona: CalleePersona) -> ConversationEvaluation:
         pass
 
 
@@ -47,8 +50,8 @@ class LLMConversationEvaluator(ConversationEvaluator):
     def __init__(self, evaluation_llm: LLMInterface):
         self.llm = evaluation_llm
     
-    def evaluate(self, conversation_history: List[Dict[str, str]], task_config: AgentTaskConfig) -> EvaluationResponse:
-        prompt = self._create_evaluation_prompt(conversation_history, task_config)
+    def evaluate(self, conversation_history: List[Dict[str, str]], task_config: AgentTaskConfig, persona: CalleePersona) -> EvaluationResponse:
+        prompt = self._create_evaluation_prompt(conversation_history, task_config, persona)
         system_prompt = self._get_evaluator_system_prompt()
         evaluation_response = self.llm.generate_response_with_structured_output(
             [{"role": "system", "content": system_prompt},
@@ -60,7 +63,7 @@ class LLMConversationEvaluator(ConversationEvaluator):
     
     def _generate_metrics_prompt(self) -> str:
         metrics_str = ""
-        with open("llm_testing/core/eval_metrics.json", "r") as file:
+        with open("llm_testing/config/eval_metrics.json", "r") as file:
             metrics = json.load(file)
         
         for metric in metrics:
@@ -81,18 +84,25 @@ success_flag is a boolean value that indicates whether the metric was achieved. 
     
     def _create_evaluation_prompt(self, 
                                 conversation_history: List[Dict[str, str]],
-                                task_config: AgentTaskConfig) -> str:
+                                task_config: AgentTaskConfig,
+                                persona: CalleePersona) -> str:
         return f"""Please evaluate the following conversation according to the provided metrics:
 
 Task and additional context: {task_config.generate_system_prompt()}
 Success Criteria: {json.dumps(task_config.success_criteria, indent=2)}
 
 Conversation:
-{self._format_conversation(conversation_history)}
+{self._format_conversation(conversation_history, persona)}
 """
 
-    def _format_conversation(self, history: List[Dict[str, str]]) -> str:
-        return "\n".join([
-            f"{turn['speaker']}: {turn['text']}" for turn in history
-        ])
+    def _format_conversation(self, history: List[Dict[str, str]], persona: CalleePersona) -> str:
+        formatted_history = ""
+        for message in history:
+            if message["speaker"] == EntitySpeaking.CALLEE.value:
+                formatted_history += f"{' '.join(persona.role.split('_')).title() if persona else 'Callee'}: {message['text']}\n"
+            else:
+                formatted_history += f"Voice Agent: {message['text']}\n"
+        
+        return formatted_history
+
 

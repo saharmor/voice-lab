@@ -19,10 +19,10 @@ def run_tests(print_conversation: bool = False):
     # evaluator_llm = OpenAIProvider(api_key, "o1-preview")
 
     # Load test details from a JSON file
-    with open('llm_testing/test_details.json', 'r') as file:  # Adjust the path as necessary
-        test_details = json.load(file)
+    with open('llm_testing/config/tests_details.json', 'r') as file:  # Adjust the path as necessary
+        tests_details = json.load(file)
 
-    for test_name, test_data in test_details.items():
+    for test_name, test_data in tests_details.items():
         print(f"\n=== Running Test: {test_name} ===")
 
         agent_config = test_data["agent"]
@@ -49,7 +49,7 @@ def run_tests(print_conversation: bool = False):
             if metric.eval_output_type == "success_flag":
                 success_indicator = "✅" if metric.eval_output == "True" else "❌"
             else: # range_score
-                success_indicator = "✅" if int(metric.eval_output) > metric.range_score_success_threshold else "❌"
+                success_indicator = "✅" if int(metric.eval_output) > metric.eval_output_success_threshold else "❌"
 
             print(f"--> {success_indicator} Metric: [{metric.name}], Output score: [{metric.eval_output}]\nReasoning: {metric.reasoning}\nEvidence: {metric.evidence}\n")
             

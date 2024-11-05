@@ -73,7 +73,7 @@
             "name": "John Smith",
             "initial_message": "Hi, I'm John Smith, how can I help you today?",
             "description": "Irritable hotel receptionist having a bad day",
-            "role": "receptionist",
+            "role": "hotel_receptionist",
             "traits": [
                 "impatient",
                 "curt", 
