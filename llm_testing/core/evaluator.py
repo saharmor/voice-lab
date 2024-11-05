@@ -3,7 +3,7 @@ from typing import List, Dict
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from core.goals import AgentTaskConfig
 from core.interfaces import LLMInterface
@@ -31,13 +31,14 @@ class ConversationEvaluator(ABC):
 
 
 class MetricResult(BaseModel):
-    name: str # name of the metric
-    output_score: str # boolean success flag or numeric score
-    reasoning: str # explanation of how the output was determined
-    evidence: str # evidence/quotes from the conversation history supporting your output score
+    name: str = Field(description="name of the metric")
+    eval_output_type: str = Field(description="either 'success_flag' or 'range_score'")
+    eval_output: str = Field(description="boolean if success flag or numeric score if range_score")
+    reasoning: str = Field(description="explanation of how the output was determined") # TODO consider using CoT for better reasoning https://platform.openai.com/docs/guides/structured-outputs#chain-of-thought
+    evidence: str = Field(description="evidence/quotes from the conversation history supporting your output score")
 
 class EvaluationResponse(BaseModel):
-    summary: str # summary of the overall conversation
+    summary: str = Field(description="summary of the overall conversation")
     evaluation_results: List[MetricResult]
 
 class LLMConversationEvaluator(ConversationEvaluator):

@@ -14,7 +14,8 @@ def run_tests(print_conversation: bool = False):
 
     # Create LLM instances for agent and evaluator
     agent_llm = OpenAIProvider(api_key, "gpt-4o-mini")
-    evaluator_llm = OpenAIProvider(api_key, "gpt-4o-mini")
+    # evaluator_llm = OpenAIProvider(api_key, "gpt-4o-mini")
+    evaluator_llm = OpenAIProvider(api_key, "gpt-4o")
     # evaluator_llm = OpenAIProvider(api_key, "o1-preview")
 
     # Load test details from a JSON file
@@ -43,14 +44,21 @@ def run_tests(print_conversation: bool = False):
         print("\n=== Evaluation report ===")
         print(f"Summary: {eval_response.summary}")
         for metric in eval_response.evaluation_results:
-            print(f"--> Metric: {metric.name}, Output: {metric.output},\nReasoning: {metric.reasoning},\nEvidence: {metric.evidence}\n")
+            # add a ✅ emoji if the metric is successful based on the eval_output_type
+            success_indicator = ""
+            if metric.eval_output_type == "success_flag":
+                success_indicator = "✅" if metric.eval_output == "True" else "❌"
+            else: # range_score
+                success_indicator = "✅" if int(metric.eval_output) > metric.range_score_success_threshold else "❌"
+
+            print(f"--> {success_indicator} Metric: {metric.name}, Output score: {metric.eval_output}\nReasoning: {metric.reasoning}\nEvidence: {metric.evidence}\n")
             
         if print_conversation:
             print("\nConversation History:")
             for turn in runner.conversation_history:
                 print(f"{turn['speaker'].upper()}: {turn['text']}")
 
-    return evaluation
+    return eval_response
 
 if __name__ == "__main__":
     load_dotenv()

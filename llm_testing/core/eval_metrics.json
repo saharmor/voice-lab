@@ -17,7 +17,8 @@
     },
     "character_adherence": {
         "eval_prompt": "Evaluate whether the model has remained consistent in its persona based on the conversation history",
-        "eval_output": "range_score"
+        "eval_output": "range_score",
+        "range_score_success_threshold": 6
     }
 
 }

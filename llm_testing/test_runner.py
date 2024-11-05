@@ -101,7 +101,7 @@ Remember:
                 reason = arguments.get('reason')
                 who_ended_conversation = arguments.get('who_ended_conversation')
                 termination_evidence = arguments.get('termination_evidence')
-                print(f"*** Conversation ended by {who_ended_conversation}. Reason: {reason}. Evidence: {termination_evidence}")
+                print(f"\n*** Conversation ended by {who_ended_conversation}. Reason: {reason}. Evidence: {termination_evidence}")
                 break
             else:
                 self.print_last_msg(turn_count, persona)
