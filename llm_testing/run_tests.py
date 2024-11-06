@@ -208,6 +208,80 @@ def generate_test_results_report(test_result: TestResult):
     .llm-column {
       min-width: 120px;
     }
+
+    .conversation-btn {
+      background-color: #6366f1;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: background-color 0.2s;
+    }
+
+    .conversation-btn:hover {
+      background-color: #4f46e5;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    }
+
+    .modal-content {
+      position: relative;
+      background-color: white;
+      margin: 2% auto;
+      padding: 20px;
+      width: 80%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .close-btn {
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      font-size: 24px;
+      cursor: pointer;
+      color: #6b7280;
+    }
+
+    .close-btn:hover {
+      color: #374151;
+    }
+
+    .conversation-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message {
+      padding: 12px;
+      border-radius: 6px;
+      max-width: 80%;
+    }
+
+    .human-message {
+      background-color: #f3f4f6;
+      align-self: flex-end;
+    }
+
+    .assistant-message {
+      background-color: #e0e7ff;
+      align-self: flex-start;
+    }
 """
     
     # Add dynamic color styles for each base test
@@ -219,7 +293,28 @@ def generate_test_results_report(test_result: TestResult):
     }}
 """
     
-    html += """  </style>
+    html += """  </style>"""
+    
+    html += """
+    <script>
+    function showConversation(testName) {
+        const modal = document.getElementById(testName + '-modal');
+        modal.style.display = 'block';
+    }
+
+    function closeModal(testName) {
+        const modal = document.getElementById(testName + '-modal');
+        modal.style.display = 'none';
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    }
+    </script>
+    
 </head>
 <body>
   <div class="table-container">
@@ -227,7 +322,9 @@ def generate_test_results_report(test_result: TestResult):
       <thead>
         <tr>
           <th>Test Name</th>
-          <th class="llm-column">LLM</th>"""
+          <th>Conversation</th>
+          <th class="llm-column">LLM</th>
+"""
 
     # Get all unique metric names
     metric_names = set()
@@ -247,7 +344,8 @@ def generate_test_results_report(test_result: TestResult):
     sorted_tests = sorted(test_result.items(), 
                          key=lambda x: (x[0].split('_variation_')[0], x[0]))
 
-    # Build table rows
+
+    modals_html = ""  # Store all modals HTML
     for test_name, test_result in sorted_tests:
         # Get base test name for styling
         base_name = test_name.split('_variation_')[0]
@@ -258,6 +356,11 @@ def generate_test_results_report(test_result: TestResult):
         <tr class="test-group test-group-{css_class_name}">
           <td>
             <div class="test-name">{test_name}</div>
+          </td>
+          <td>
+            <button class="conversation-btn" onclick="showConversation('{test_name.replace("'", "\\'").replace('"', '\\"')}')">
+              View Conversation
+            </button>
           </td>
           <td class="llm-column">
             <span class="llm-badge">{test_result["tested_component"][0]}</span>
@@ -287,10 +390,41 @@ def generate_test_results_report(test_result: TestResult):
         html += """
         </tr>"""
 
+        # Create modal for this test
+        modals_html += f"""
+        <div id="{test_name.replace('"', '&quot;')}-modal" class="modal">
+          <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('{test_name}')">&times;</span>
+            <h2>Conversation History - {test_name}</h2>
+            <div class="conversation-container">"""
+        
+        # Add conversation messages for this test
+        for message in test_result["result"].conversation_history:
+            role = message["role"]
+            content = message["content"]
+            message_class = "human-message" if role == "human" else "assistant-message"
+            modals_html += f"""
+              <div class="message {message_class}">
+                <strong>{role.capitalize()}:</strong><br>
+                {content}
+              </div>"""
+            
+        modals_html += """
+            </div>
+          </div>
+        </div>"""
+
+    # Close the table and add all modals
     html += """
       </tbody>
     </table>
-  </div>
+  </div>"""
+    
+    # Add all modals after the table
+    html += modals_html
+
+    # Close the HTML document
+    html += """
 </body>
 </html>"""
 
