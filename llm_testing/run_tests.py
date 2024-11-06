@@ -5,7 +5,7 @@ import json
 import webbrowser
 from core.agent_config import AgentTaskConfig
 from core.personas import CalleePersona
-from core.data_types import TestedComponent, TestedComponentType
+from core.data_types import TestResult, TestedComponent, TestedComponentType
 from test_runner import GoalBasedTestRunner
 from core.evaluator import LLMConversationEvaluator
 from providers.openai import OpenAIProvider
@@ -103,7 +103,7 @@ def run_tests(print_verbose: bool = False):
     return tests_results
 
 
-def generate_test_results_report(tests_results):
+def generate_test_results_report(test_result: TestResult):
     # Helper function to generate a consistent color based on test name
     def get_color_for_test(test_name):
         # Convert test name to a number using sum of character codes
@@ -120,7 +120,7 @@ def generate_test_results_report(tests_results):
         return colors[hash_val % len(colors)]
 
     # Get base test names (without variations)
-    base_test_names = {name.split('_variation_')[0] for name in tests_results.keys()}
+    base_test_names = {name.split('_variation_')[0] for name in test_result.keys()}
     
     # Generate color mapping
     color_map = {name: get_color_for_test(name) for name in base_test_names}
@@ -205,7 +205,9 @@ def generate_test_results_report(tests_results):
       color: #374151;
     }
 
-    /* Generate dynamic test group styles */
+    .llm-column {
+      min-width: 120px;
+    }
 """
     
     # Add dynamic color styles for each base test
@@ -225,13 +227,12 @@ def generate_test_results_report(tests_results):
       <thead>
         <tr>
           <th>Test Name</th>
-          <th>LLM</th>"""
+          <th class="llm-column">LLM</th>"""
 
     # Get all unique metric names
     metric_names = set()
-    for test_name, test_result in tests_results.items():
-        for metric in test_result["result"].evaluation_results:
-            metric_names.add(metric.name)
+    for test in test_result.values():
+        metric_names.update(m.name for m in test["result"].evaluation_results)
 
     # Add metric column headers
     for metric in metric_names:
@@ -243,7 +244,7 @@ def generate_test_results_report(tests_results):
       <tbody>"""
 
     # Sort test results by base name to group variations together
-    sorted_tests = sorted(tests_results.items(), 
+    sorted_tests = sorted(test_result.items(), 
                          key=lambda x: (x[0].split('_variation_')[0], x[0]))
 
     # Build table rows
@@ -258,7 +259,7 @@ def generate_test_results_report(tests_results):
           <td>
             <div class="test-name">{test_name}</div>
           </td>
-          <td>
+          <td class="llm-column">
             <span class="llm-badge">{test_result["tested_component"][0]}</span>
           </td>"""
 

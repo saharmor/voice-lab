@@ -23,15 +23,6 @@ class ConversationEvaluation:
     reasoning: str
     metadata: EvaluationMetadata
 
-class ConversationEvaluator(ABC):
-    """Abstract base class for conversation evaluators"""
-    @abstractmethod
-    def evaluate(self, 
-                conversation_history: List[Dict[str, str]],
-                task_config: AgentTaskConfig,
-                persona: CalleePersona) -> ConversationEvaluation:
-        pass
-
 
 class MetricResult(BaseModel):
     name: str = Field(description="name of the metric")
@@ -44,6 +35,15 @@ class MetricResult(BaseModel):
 class EvaluationResponse(BaseModel):
     summary: str = Field(description="summary of the overall conversation")
     evaluation_results: List[MetricResult]
+
+class ConversationEvaluator(ABC):
+    """Abstract base class for conversation evaluators"""
+    @abstractmethod
+    def evaluate(self, 
+                conversation_history: List[Dict[str, str]],
+                task_config: AgentTaskConfig,
+                persona: CalleePersona) -> EvaluationResponse:
+        pass
 
 class LLMConversationEvaluator(ConversationEvaluator):
     """Evaluates conversation outcome using an LLM"""

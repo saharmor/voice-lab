@@ -1,5 +1,5 @@
 import json
-from core.data_types import ConversationContext, EntitySpeaking, LLMResponse
+from core.data_types import ConversationContext, EntitySpeaking, LLMResponse, TestResult
 from core.agent_config import AgentTaskConfig
 from core.interfaces import LLMInterface
 from core.personas import CalleePersona
@@ -111,8 +111,11 @@ Remember:
         if turn_count >= max_turns:
             print(f"Warning: Conversation ended prematurely due to max turn limit of {max_turns}")
         
-        return self.evaluator.evaluate(
-            self.conversation_history,
-            task_config,
-            persona
+        return TestResult(
+            evaluation_result=self.evaluator.evaluate(
+                self.conversation_history,
+                task_config,
+                persona
+            ),
+            conversation_history=self.conversation_history
         )
