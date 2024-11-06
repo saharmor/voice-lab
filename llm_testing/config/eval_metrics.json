@@ -20,5 +20,4 @@
         "eval_output": "range_score",
         "range_score_success_threshold": 6
     }
-
 }

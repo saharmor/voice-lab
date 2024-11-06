@@ -103,6 +103,7 @@ To add a new scenario (e.g., a "chill pharmacy clerk"), follow these steps:
    }
    ```
 # Contribution ideas
+- [x] Support providing agents with additional context via json, e.g. credit card details, price range, etc.
 - [x] Dyanmic metrics for json (e.g. `metrics.json`)
 - [ ] Add more test scenarios
 - [ ] Integrate [Tencent's 1M Personas](https://huggingface.co/datasets/proj-persona/PersonaHub) for more detailed and complex scenarios
