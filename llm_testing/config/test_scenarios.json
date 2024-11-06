@@ -1,7 +1,7 @@
 {
     "angry_hotel_receptionist": {
         "tested_components": {
-            "underlying_llms": ["gpt-4o-mini", "gpt-4o"],
+            "underlying_llms": ["gpt-4o-mini", "gpt-3.5-turbo"],
             "agent_system_prompts": ["You are a voice agent trying to book a hotel room for yourself on December 12th-24th. Make sure to confirm the price and booking reference when booking."]
         },
         "agent": {

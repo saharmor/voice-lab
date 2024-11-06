@@ -1,6 +1,6 @@
 import json
 from core.data_types import ConversationContext, EntitySpeaking, LLMResponse
-from llm_testing.core.agent_config import AgentTaskConfig
+from core.agent_config import AgentTaskConfig
 from core.interfaces import LLMInterface
 from core.personas import CalleePersona
 from core.evaluator import ConversationEvaluation, ConversationEvaluator
