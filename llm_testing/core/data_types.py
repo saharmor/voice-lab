@@ -3,6 +3,8 @@ from typing import List, Dict, Optional, Callable, Any
 from datetime import datetime
 from enum import Enum
 
+from core.agent_config import AgentTaskConfig
+
 @dataclass
 class ConversationContext:
     """Represents the context of the conversation"""
@@ -86,3 +88,19 @@ class EntitySpeaking(Enum):
     """Represents the entity speaking in the conversation"""
     VOICE_AGENT = "voice_agent"
     CALLEE = "callee"
+
+class TestedComponentType(Enum):
+    """Represents the component being tested"""
+    UNDERLYING_LLM = "underlying_llm"
+    AGENT = "agent"
+
+@dataclass
+class TestedComponent:
+    """Represents a component being tested"""
+    type: TestedComponentType
+    variations: List[str]
+
+class TestScenario:
+    """Represents a scenario for a test"""
+    tested_components: List[TestedComponent]
+    agent_config: AgentTaskConfig

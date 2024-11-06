@@ -1,0 +1,192 @@
+{
+    "angry_hotel_receptionist": {
+        "tested_components": {
+            "underlying_llms": ["gpt-4o-mini", "gpt-4o"],
+            "agent_system_prompts": ["You are a voice agent trying to book a hotel room for yourself on December 12th-24th. Make sure to confirm the price and booking reference when booking."]
+        },
+        "agent": {
+            "initial_message": "Hi, I'd like to book a room",
+            "tool_calls": [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "end_conversation",
+                        "description": "Call ONLY when conversation reaches clear end state by both sides exchanging farewell messages or one side explicitly stating they want to end the conversation.\n\nDO NOT CALL if:\n- Still negotiating/discussing\n- Questions pending\n- No explicit end statement\n- Just discussing options\n\nMust have clear evidence in final messages.",
+                        "strict": true,
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "reason": {
+                                    "type": "string", 
+                                    "description": "The specific reason why the conversation must end, which should directly reference one of the conditions listed above",
+                                    "enum": [
+                                        "explicit_termination_request",
+                                        "service_not_available",
+                                        "price_agreement_not_reached", 
+                                        "customer_declined_service",
+                                        "provider_declined_service"
+                                    ]
+                                },
+                                "who_ended_conversation": {
+                                    "type": "string",
+                                    "enum": ["agent", "callee"],
+                                    "description": "Who initiated the conversation ending. Must be supported by clear evidence in the conversation."
+                                },
+                                "termination_evidence": {
+                                    "type": "object",
+                                    "properties": {
+                                        "final_messages": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "description": "Last 1-2 messages showing clear end reason"
+                                        },
+                                        "termination_type": {
+                                            "type": "string",
+                                            "enum": ["successful_completion", "early_termination"],
+                                            "description": "Whether successful completion or early termination"
+                                        }
+                                    },
+                                    "required": ["final_messages", "termination_type"],
+                                    "additionalProperties": false
+                                }
+                            },
+                            "required": ["reason", "who_ended_conversation", "termination_evidence"],
+                            "additionalProperties": false
+                        }
+                    }
+                }
+            ],
+            "success_criteria": {
+                "required_confirmations": ["booking_reference", "price"]
+            },
+            "additional_context": {
+                "max_price_per_night": "$250",
+                "okay_with_partial_dates": true,
+                "min_stay_nights": 2,
+                "credit_card_details": {
+                    "name": "John Smith",
+                    "number": "1234-5678-9101-1121",
+                    "expiration": "12/25"
+                }
+            }
+        },
+        "persona": {
+            "name": "John Smith",
+            "initial_message": "Hi, I'm John Smith, how can I help you today?",
+            "description": "Irritable hotel receptionist having a bad day",
+            "role": "hotel_receptionist", 
+            "traits": [
+                "impatient",
+                "curt",
+                "easily annoyed",
+                "interrupts frequently"
+            ],
+            "mood": "ANGRY",
+            "response_style": "CURT",
+            "background_info": "Dealing with understaffing and difficult customers all day",
+            "additional_context": {
+                "available_dates": {
+                    "start": "2024-12-12",
+                    "end": "2024-12-14"
+                },
+                "price_per_night": "$270",
+                "available_hours": ["09:00-17:00"]
+            }
+        }
+    },
+    "united_airlines_seat_change": {
+        "tested_components": {
+            "underlying_llms": ["gpt-4o-mini"],
+            "agent_system_prompts": [
+                "You are a customer calling United Airlines to change your seat from an aisle seat to a window seat. You want to know the cost and availability of window seats. You're willing to pay an additional fee of up to $40 for a window seat.",
+                "You are a United Airlines customer who booked an aisle seat but strongly prefers window seats. Your goal is to find out if you can switch to a window seat and what it would cost. You have a maximum budget of $40 for the seat change. Be sure to get clear information about both availability and pricing before making any decisions."
+            ]
+        },
+        "agent": {
+            "initial_message": "Hi, I'm calling about changing my seat assignment for my upcoming flight.",
+            "tool_calls": [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "end_conversation",
+                        "description": "Call ONLY when conversation reaches clear end state by both sides exchanging farewell messages or one side explicitly stating they want to end the conversation.",
+                        "strict": true,
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "reason": {
+                                    "type": "string",
+                                    "description": "The specific reason why the conversation must end.",
+                                    "enum": [
+                                        "explicit_termination_request",
+                                        "service_not_available",
+                                        "customer_declined_service",
+                                        "service_completed"
+                                    ]
+                                },
+                                "who_ended_conversation": {
+                                    "type": "string",
+                                    "enum": ["agent", "callee"]
+                                },
+                                "termination_evidence": {
+                                    "type": "object",
+                                    "properties": {
+                                        "final_messages": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "termination_type": {
+                                            "type": "string",
+                                            "enum": ["successful_completion", "early_termination"]
+                                        }
+                                    },
+                                    "required": ["final_messages", "termination_type"],
+                                    "additionalProperties": false
+                                }
+                            },
+                            "required": ["reason", "who_ended_conversation", "termination_evidence"],
+                            "additionalProperties": false
+                        }
+                    }
+                }
+            ],
+            "success_criteria": {
+                "required_confirmations": ["seat_change_cost", "window_seat_availability"]
+            },
+            "additional_context": {
+                "full_name": "John Smith",
+                "booking_reference": "UA123456",
+                "current_seat": "12C",
+                "flight_number": "UA789",
+                "flight_date": "2024-03-15"
+            }
+        },
+        "persona": {
+            "name": "Sarah Wilson",
+            "initial_message": "Thank you for calling United Airlines. This is Sarah, how may I assist you today?",
+            "description": "A calm and professional United Airlines customer service representative",
+            "role": "airline_representative",
+            "traits": [
+                "professional",
+                "helpful",
+                "patient", 
+                "clear communicator"
+            ],
+            "mood": "PROFESSIONAL",
+            "response_style": "FORMAL",
+            "background_info": "Experienced customer service representative with detailed knowledge of United Airlines policies and procedures",
+            "additional_context": {
+                "available_window_seats": ["15A", "17F"],
+                "seat_change_fee": "$50",
+                "knowledge_base": {
+                    "seat_change_policy": "Window seats are available for an additional fee of $50",
+                    "refund_policy": "Seat change fees are non-refundable once processed"
+                }
+            }
+        }
+    }
+}

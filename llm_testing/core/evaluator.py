@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 
 from pydantic import BaseModel, Field
 
-from core.goals import AgentTaskConfig
+from llm_testing.core.agent_config import AgentTaskConfig
 from core.interfaces import LLMInterface
 from core.data_types import EntitySpeaking
 from core.personas import CalleePersona
