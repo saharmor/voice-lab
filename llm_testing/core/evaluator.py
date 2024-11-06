@@ -1,40 +1,13 @@
 import json
 from typing import List, Dict
-from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
-from pydantic import BaseModel, Field
 
 from core.agent_config import AgentTaskConfig
 from core.interfaces import LLMInterface
-from core.data_types import EntitySpeaking
+from core.data_types import EntitySpeaking, EvaluationResponse
 from core.personas import CalleePersona
 
-@dataclass
-class EvaluationMetadata:
-    """Metadata for conversation evaluation"""
-    key_observations: List[str] = field(default_factory=list)
-    missed_objectives: List[str] = field(default_factory=list)
-    
-@dataclass
-class ConversationEvaluation:
-    """Result of evaluating a conversation against its goals"""
-    goal_achieved: bool
-    reasoning: str
-    metadata: EvaluationMetadata
-
-
-class MetricResult(BaseModel):
-    name: str = Field(description="name of the metric")
-    eval_output_type: str = Field(description="either 'success_flag' or 'range_score'")
-    eval_output: str = Field(description="boolean if success flag or numeric score if range_score")
-    eval_output_success_threshold: int = Field(description="threshold for success if eval_output_type is range_score")
-    reasoning: str = Field(description="explanation of how the output was determined") # TODO consider using CoT for better reasoning https://platform.openai.com/docs/guides/structured-outputs#chain-of-thought
-    evidence: str = Field(description="evidence/quotes from the conversation history supporting your output score. Can be empty if no evidence is needed.")
-
-class EvaluationResponse(BaseModel):
-    summary: str = Field(description="summary of the overall conversation")
-    evaluation_results: List[MetricResult]
 
 class ConversationEvaluator(ABC):
     """Abstract base class for conversation evaluators"""

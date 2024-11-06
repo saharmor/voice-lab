@@ -5,7 +5,7 @@ import json
 import webbrowser
 from core.agent_config import AgentTaskConfig
 from core.personas import CalleePersona
-from core.data_types import TestResult, TestedComponent, TestedComponentType
+from core.data_types import EntitySpeaking, TestResult, TestedComponent, TestedComponentType
 from test_runner import GoalBasedTestRunner
 from core.evaluator import LLMConversationEvaluator
 from providers.openai import OpenAIProvider
@@ -42,8 +42,8 @@ def run_tests(print_verbose: bool = False):
     if not api_key:
         raise ValueError("Please set OPENAI_API_KEY environment variable")
 
-    # evaluator_llm = OpenAIProvider(api_key, "gpt-4o-mini")
-    evaluator_llm = OpenAIProvider(api_key, "gpt-4o")
+    evaluator_llm = OpenAIProvider(api_key, "gpt-4o-mini")
+    # evaluator_llm = OpenAIProvider(api_key, "gpt-4o")
     # evaluator_llm = OpenAIProvider(api_key, "o1-preview")
 
     # Load test details from a JSON file
@@ -97,13 +97,13 @@ def run_tests(print_verbose: bool = False):
             test_number += 1
             print(f"\n{'-' * 100}\n")
 
-        break # TODO: remove this, just for dev
+            break # TODO: remove this, just for dev
 
     print(f"\n\n=== All tests completed: {test_number - 1} ===")
     return tests_results
 
 
-def generate_test_results_report(test_result: TestResult):
+def generate_test_results_report(tests_run_result: TestResult):
     # Helper function to generate a consistent color based on test name
     def get_color_for_test(test_name):
         # Convert test name to a number using sum of character codes
@@ -120,7 +120,7 @@ def generate_test_results_report(test_result: TestResult):
         return colors[hash_val % len(colors)]
 
     # Get base test names (without variations)
-    base_test_names = {name.split('_variation_')[0] for name in test_result.keys()}
+    base_test_names = {name.split('_variation_')[0] for name in tests_run_result.keys()}
     
     # Generate color mapping
     color_map = {name: get_color_for_test(name) for name in base_test_names}
@@ -328,8 +328,8 @@ def generate_test_results_report(test_result: TestResult):
 
     # Get all unique metric names
     metric_names = set()
-    for test in test_result.values():
-        metric_names.update(m.name for m in test["result"].evaluation_results)
+    for test_result in tests_run_result.values():
+        metric_names.update(m.name for m in test_result['result'].evaluation_result.evaluation_results)
 
     # Add metric column headers
     for metric in metric_names:
@@ -341,12 +341,12 @@ def generate_test_results_report(test_result: TestResult):
       <tbody>"""
 
     # Sort test results by base name to group variations together
-    sorted_tests = sorted(test_result.items(), 
+    sorted_tests = sorted(tests_run_result.items(), 
                          key=lambda x: (x[0].split('_variation_')[0], x[0]))
 
 
     modals_html = ""  # Store all modals HTML
-    for test_name, test_result in sorted_tests:
+    for test_name, tests_run_result in sorted_tests:
         # Get base test name for styling
         base_name = test_name.split('_variation_')[0]
         css_class_name = base_name.lower().replace(' ', '-')
@@ -363,11 +363,11 @@ def generate_test_results_report(test_result: TestResult):
             </button>
           </td>
           <td class="llm-column">
-            <span class="llm-badge">{test_result["tested_component"][0]}</span>
+            <span class="llm-badge">{tests_run_result["tested_component"][0]}</span>
           </td>"""
 
         # Create a dict for quick metric lookup
-        metrics_dict = {m.name: m for m in test_result["result"].evaluation_results}
+        metrics_dict = {m.name: m for m in tests_run_result["result"].evaluation_result.evaluation_results}
 
         # Add data for each metric
         for metric_name in metric_names:
@@ -399,13 +399,13 @@ def generate_test_results_report(test_result: TestResult):
             <div class="conversation-container">"""
         
         # Add conversation messages for this test
-        for message in test_result["result"].conversation_history:
-            role = message["role"]
-            content = message["content"]
-            message_class = "human-message" if role == "human" else "assistant-message"
+        for message in tests_run_result["result"].conversation_history:
+            role = ' '.join(word.capitalize() for word in message["speaker"].replace('_', ' ').split())
+            content = message["text"]
+            message_class = "human-message" if role == EntitySpeaking.CALLEE else "assistant-message"
             modals_html += f"""
               <div class="message {message_class}">
-                <strong>{role.capitalize()}:</strong><br>
+                <strong>{role}</strong><br>
                 {content}
               </div>"""
             
