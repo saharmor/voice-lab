@@ -28,6 +28,8 @@ For now, this library only supports the text part of a voice agent, i.e. testing
 python llm_testing/example_test.py
 ```
 
+For more advanced configuration, you can use the [Voice Lab Configuration Editor](https://saharmor.me/voice-lab-ui/) to generate the json config files.
+
 ## Adding a New Test Scenario
 
 To add a new scenario (e.g., a "chill pharmacy clerk"), follow these steps:
