@@ -42,6 +42,7 @@ def run_tests(print_verbose: bool = False):
     if not api_key:
         raise ValueError("Please set OPENAI_API_KEY environment variable")
 
+    # To choose the best LLM-as-a-Judge, review https://arxiv.org/abs/2410.12784 and https://huggingface.co/spaces/ScalerLab/JudgeBench
     evaluator_llm = OpenAIProvider(api_key, "gpt-4o-mini")
     # evaluator_llm = OpenAIProvider(api_key, "gpt-4o")
     # evaluator_llm = OpenAIProvider(api_key, "o1-preview")
@@ -97,7 +98,7 @@ def run_tests(print_verbose: bool = False):
             test_number += 1
             print(f"\n{'-' * 100}\n")
 
-            break # TODO: remove this, just for dev
+            # break # TODO: remove this, just for dev
 
     print(f"\n\n=== All tests completed: {test_number - 1} ===")
     return tests_results
