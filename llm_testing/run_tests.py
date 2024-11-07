@@ -117,6 +117,10 @@ def generate_test_results_report(tests_run_result: TestResult):
             '#60a5fa',  # Blue
             '#a78bfa',  # Purple
             '#4ade80',  # Green
+            '#f97316',  # Orange
+            '#fbbf24',  # Amber
+            '#dc2626',  # Red
+            '#2563eb',  # Blue
         ]
         return colors[hash_val % len(colors)]
 
