@@ -339,8 +339,8 @@ def generate_test_results_report(tests_run_result: TestResult):
     for test_result in tests_run_result.values():
         metric_names.update(m.name for m in test_result['result'].evaluation_result.evaluation_results)
 
-    # Add metric column headers
-    for metric in metric_names:
+    # Add metric column headers in alphabetical order
+    for metric in sorted(metric_names):
         html += f"\n          <th>{metric}</th>"
 
     html += """

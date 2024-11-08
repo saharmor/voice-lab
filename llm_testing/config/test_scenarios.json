@@ -260,7 +260,7 @@
         "persona": {
             "name": "Arnold Palmer",
             "initial_message": "Hi there! How can I help you today?",
-            "description": "A friendly airline agent who loves discussing weather patterns",
+            "description": "A friendly airline representative who hates his job and therefore ONLY wants to talk about the weather and tries to change the subject at every opportunity, something refusing to move on from the topic.",
             "role": "airline_agent",
             "traits": [
                 "friendly",
