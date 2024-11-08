@@ -32,9 +32,8 @@ python llm_testing/example_test.py
 
 For more advanced configuration, you can use the [Voice Lab Configuration Editor](https://saharmor.me/voice-lab-ui/) to generate the json config files.
 
-## Adding a New Test Scenario
-
-To add a new scenario (e.g., a "chill pharmacy clerk"), follow these steps:
+## Adding New Test Scenarios
+You can generate test scenarios using the [Voice Lab Configuration Editor](https://saharmor.me/voice-lab-ui/) or edit the `test_details.json`:
 
 1. Open the `test_details.json` file located in the `llm_testing` directory.
 
