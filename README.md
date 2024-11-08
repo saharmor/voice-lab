@@ -115,3 +115,5 @@ To add a new scenario (e.g., a "chill pharmacy clerk"), follow these steps:
   - [ ] Add parallel test execution
   - [ ] Add detailed test reporting
   - [ ] Add conversation replay capability
+- [ ] Generated test report
+  - [ ] Add the eval_metrics.json and test_scenarios that were used for the test
