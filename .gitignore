@@ -162,3 +162,5 @@ cython_debug/
 #.idea/
 test_results/*
 !test_results/test_run_example.html
+
+.DS_Store
