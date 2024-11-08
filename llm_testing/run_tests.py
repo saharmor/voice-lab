@@ -374,8 +374,8 @@ def generate_test_results_report(tests_run_result: TestResult):
             <span class="llm-badge">{tests_run_result["tested_component"][0]}</span>
           </td>"""
 
-        # Create a dict for quick metric lookup
-        metrics_dict = {m.name: m for m in tests_run_result["result"].evaluation_result.evaluation_results}
+        # Create a dict for quick metric lookup, sorted alphabetically by metric name
+        metrics_dict = {m.name: m for m in sorted(tests_run_result["result"].evaluation_result.evaluation_results, key=lambda x: x.name)}
 
         # Add data for each metric
         for metric_name in metric_names:
