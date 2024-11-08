@@ -37,7 +37,7 @@ def get_metric_success_indicator(metric):
         return "✅" if int(metric.eval_output) > metric.eval_output_success_threshold else "❌"
     
     
-def run_tests(print_verbose: bool = False):
+def run_tests(tests_to_run: list[str] = [], print_verbose: bool = False):
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise ValueError("Please set OPENAI_API_KEY environment variable")
@@ -54,6 +54,9 @@ def run_tests(print_verbose: bool = False):
     tests_results = {}
     test_number = 1
     for test_name, test_data in test_scenarios.items():
+        if tests_to_run and test_name not in tests_to_run:
+            continue
+        
         print(f"\n=== Running Test: #{test_number} - {test_name} ===")
 
         agent_config = test_data["agent"]
@@ -63,7 +66,7 @@ def run_tests(print_verbose: bool = False):
         for tested_component_variation in tested_components:
             agent_llm = OpenAIProvider(api_key, tested_component_variation[0])
             agent_prompt = tested_component_variation[1]
-            print(f"Tested component: [{tested_component_variation[0]}] + [{tested_component_variation[1][:50]}]")
+            print(f"Tested component: [{tested_component_variation[0]}] + [{tested_component_variation[1][:50]}...]")
 
             agent_task_config = AgentTaskConfig(
                 system_prompt=agent_prompt,
