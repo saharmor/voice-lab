@@ -98,7 +98,7 @@
     },
     "united_airlines_seat_change": {
         "tested_components": {
-            "underlying_llms": ["gpt-4o-mini"],
+            "underlying_llms": ["gpt-4o-mini", "gpt-3.5-turbo"],
             "agent_system_prompts": [
                 "You are a customer calling United Airlines to change your seat from an aisle seat to a window seat. You want to know the cost and availability of window seats. You're willing to pay an additional fee of up to $40 for a window seat.",
                 "You are a United Airlines customer who booked an aisle seat but strongly prefers window seats. Your goal is to find out if you can switch to a window seat and what it would cost. You have a maximum budget of $40 for the seat change. Be sure to get clear information about both availability and pricing before making any decisions."
