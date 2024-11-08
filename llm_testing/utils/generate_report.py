@@ -345,7 +345,7 @@ def generate_test_results_report(tests_run_result: TestResult):
 
     # Save results and open the file in the browser for further analysis
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_dir = "./results"
+    results_dir = "./test_results"
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
         
