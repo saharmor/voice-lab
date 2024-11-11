@@ -1,7 +1,40 @@
 # Voice Lab
-A testing and evaluation framework for voice agents.
+A comprehensive testing and evaluation framework for voice agents across language models, prompts, and agent personas.
 
+<p align="center">
 <img width="800" alt="Generated report example" src="https://github.com/user-attachments/assets/b241961f-8ab0-4e98-885e-5492573faa8c">
+</p>
+
+# Background
+### What
+Voice Lab streamlines the process of evaluating and iterating on LLM-powered agents. Whether you're looking to optimize costs by switching to a smaller model, testing newly-released models, or fine-tuning prompts for better performance, Voice Lab provides the tools you need to make data-driven decisions with confidence.
+
+While optimized for voice agents, Voice Lab is valuable for any LLM-powered agent evaluation needs.
+
+### Why
+Building and maintaining voice agents often involves:
+* Manually reviewing hundreds of call logs
+* Refining prompts without clear metrics
+* Risking a performance hit when switching to new language models
+* Limited ability to test edge cases systematically
+
+### The Solution & Use Cases
+Voice Lab enables you to tackle common challenges in voice agent development:
+
+#### Model Migration & Cost Optimization
+* Confidently switch between models (e.g., Claude Sonnet to GPT-4, or GPT-4 to GPT-4 Mini)
+* Evaluate smaller, more efficient models for better cost-latency balance
+* Generate comprehensive comparison tables across different models
+
+#### Prompt & Performance Testing
+
+* Test multiple prompt variations systematically
+* Simulate and verify performance across diverse user types and interaction styles
+
+#### Metrics & Analysis
+
+* Track performance metrics across different configurations
+* Monitor and intelligently choose the most cost-effective model
 
 # Installation
 1. Clone the repository:
@@ -21,7 +54,6 @@ A testing and evaluation framework for voice agents.
     ```
     OPENAI_API_KEY=your_openai_api_key
     ```
-
 
 # Usage
 ## Basic
