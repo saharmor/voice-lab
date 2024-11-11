@@ -21,6 +21,12 @@ Building and maintaining voice agents often involves:
 ### Solution & Use Cases
 Voice Lab enables you to tackle common challenges in voice agent development:
 
+#### Metrics & Analysis
+
+* Define your custom metrics in JSON format and use LLM-as-a-Judge to score those metrics
+* Track performance metrics across different configurations
+* Monitor and intelligently choose the most cost-effective model
+
 #### Model Migration & Cost Optimization
 * Confidently switch between models (e.g., Claude Sonnet to GPT-4, or GPT-4 to GPT-4 Mini)
 * Evaluate smaller, more efficient models for better cost-latency balance
@@ -30,11 +36,6 @@ Voice Lab enables you to tackle common challenges in voice agent development:
 
 * Test multiple prompt variations systematically
 * Simulate and verify performance across diverse user types and interaction styles
-
-#### Metrics & Analysis
-
-* Track performance metrics across different configurations
-* Monitor and intelligently choose the most cost-effective model
 
 # Installation
 1. Clone the repository:
