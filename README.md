@@ -1,9 +1,14 @@
-# Voice Lab
+<div align="center">
+
+   # Voice Lab
+
+   [**Background (What, Why, Solution overview)**](docs/cn/README.md) | [**Installation**](docs/jp/README.md) | [**Usage**](docs/ru/README.md)
+
 A comprehensive testing and evaluation framework for voice agents across language models, prompts, and agent personas.
 
-<p align="center">
 <img width="800" alt="Generated report example" src="https://github.com/user-attachments/assets/b241961f-8ab0-4e98-885e-5492573faa8c">
-</p>
+
+</div>
 
 # Background
 ### What
