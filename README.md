@@ -147,7 +147,7 @@ You can generate test scenarios using the [Voice Lab Configuration Editor](https
 - [x] Support providing agents with additional context via json, e.g. credit card details, price range, etc.
 - [x] Dyanmic metrics for json (e.g. `metrics.json`)
 - [ ] Add more test scenarios
-- [ ] Integrate [Tencent's 1M Personas](https://huggingface.co/datasets/proj-persona/PersonaHub) for more detailed and complex scenarios
+- [ ] Integrate [Tencent's 1B Personas](https://huggingface.co/datasets/proj-persona/PersonaHub) for more detailed and complex scenarios
 - [ ] Batch processing for lower cost (50% off)
 - [ ] Improve test framework
   - [ ] Create a DB of agents and personas, each with additional context (e.g. address) according to scenarios (e.g. airline, commerce)
