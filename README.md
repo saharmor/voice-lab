@@ -6,7 +6,7 @@
 
 A comprehensive testing and evaluation framework for voice agents across language models, prompts, and agent personas.
 
-<img width="800" alt="Generated report example" src="https://github.com/user-attachments/assets/b241961f-8ab0-4e98-885e-5492573faa8c">
+<img width="800" alt="Demo usage" src="https://github.com/saharmor/voice-lab/blob/main/usage_demo.gif">
 
 </div>
 
