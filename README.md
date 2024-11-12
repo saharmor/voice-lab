@@ -145,7 +145,7 @@ You can generate test scenarios using the [Voice Lab Configuration Editor](https
    ```
 # Contribution ideas
 - [x] Support providing agents with additional context via json, e.g. credit card details, price range, etc.
-- [x] Dyanmic metrics for json (e.g. `metrics.json`)
+- [x] Dynamic metrics for json (e.g. `metrics.json`)
 - [ ] Add more test scenarios
 - [ ] Support more language models via [LiteLLM]([url](https://github.com/BerriAI/litellm))
 - [ ] Integrate [Tencent's 1B Personas](https://huggingface.co/datasets/proj-persona/PersonaHub) for more detailed and complex scenarios
@@ -156,4 +156,4 @@ You can generate test scenarios using the [Voice Lab Configuration Editor](https
   - [ ] Add detailed test reporting
   - [ ] Add conversation replay capability
 - [ ] Generated test report
-  - [ ] Add the eval_metrics.json and test_scenarios that were used for the test
+  - [ ] Add the eval_metrics.json and test_scenarios that were used for the test run
