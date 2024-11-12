@@ -37,165 +37,18 @@ def generate_test_results_report(tests_run_result: TestResult):
     # Generate color mapping
     color_map = {name: get_color_for_test(name) for name in base_test_names}
     
-    # Start of HTML with styles
+    css_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "html_report_style.css")
+    with open(css_path, 'r') as f:
+        css_content = f.read()
+    
+    # Start of HTML
     html = """<!DOCTYPE html>
 <html>
 <head>
   <style>
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      padding: 20px;
-      line-height: 1.5;
-    }
-    
-    .table-container {
-      overflow-x: auto;
-      max-width: 100%;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      border-radius: 8px;
-    }
-    
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      background: white;
-    }
-    
-    th {
-      background: #f3f4f6;
-      padding: 12px 16px;
-      text-align: left;
-      font-weight: 600;
-      color: #374151;
-      border-bottom: 2px solid #e5e7eb;
-    }
-    
-    td {
-      padding: 12px 16px;
-      border-bottom: 1px solid #e5e7eb;
-      color: #4b5563;
-    }
-    
-    tr:hover {
-      background: #f9fafb;
-    }
-    
-    .result {
-      font-weight: 600;
-    }
-    
-    .success {
-      color: #059669;
-    }
-    
-    .failure {
-      color: #dc2626; 
-    }
-    
-    .reasoning {
-      font-size: 0.875rem;
-      color: #6b7280;
-    }
-
-    .test-group {
-      border-left: 3px solid transparent;
-    }
-
-    .test-name {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .llm-badge {
-      display: inline-block;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      background: #f3f4f6;
-      color: #374151;
-    }
-
-    .llm-column {
-      min-width: 120px;
-    }
-
-    .conversation-btn {
-      background-color: #6366f1;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.875rem;
-      transition: background-color 0.2s;
-    }
-
-    .conversation-btn:hover {
-      background-color: #4f46e5;
-    }
-
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-    }
-
-    .modal-content {
-      position: relative;
-      background-color: white;
-      margin: 2% auto;
-      padding: 20px;
-      width: 80%;
-      max-width: 800px;
-      max-height: 90vh;
-      overflow-y: auto;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-
-    .close-btn {
-      position: absolute;
-      right: 20px;
-      top: 20px;
-      font-size: 24px;
-      cursor: pointer;
-      color: #6b7280;
-    }
-
-    .close-btn:hover {
-      color: #374151;
-    }
-
-    .conversation-container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .message {
-      padding: 12px;
-      border-radius: 6px;
-      max-width: 80%;
-    }
-
-    .human-message {
-      background-color: #f3f4f6;
-      align-self: flex-end;
-    }
-
-    .assistant-message {
-      background-color: #e0e7ff;
-      align-self: flex-start;
-    }
 """
-    
+    html += css_content
+
     # Add dynamic color styles for each base test
     for base_name, color in color_map.items():
         # Convert base name to a valid CSS class name
