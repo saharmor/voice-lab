@@ -2,7 +2,7 @@
 
    # Voice Lab
 
-   [**Background (What, Why, Solution overview)**](docs/cn/README.md) | [**Installation**](docs/jp/README.md) | [**Usage**](docs/ru/README.md)
+   [**Background (What, Why, Solution overview)**](https://github.com/saharmor/voice-lab?tab=readme-ov-file#background) | [**Installation**](https://github.com/saharmor/voice-lab?tab=readme-ov-file#background) | [**Usage**](https://github.com/saharmor/voice-lab?tab=readme-ov-file#background)
 
 A comprehensive testing and evaluation framework for voice agents across language models, prompts, and agent personas.
 
@@ -71,7 +71,7 @@ python llm_testing/example_test.py
 For more advanced configuration, you can use the [Voice Lab Configuration Editor](https://saharmor.me/voice-lab-ui/) to generate the json config files.
 
 ## Adding New Test Scenarios
-You can generate test scenarios using the [Voice Lab Configuration Editor](https://saharmor.me/voice-lab-ui/) or edit the `test_details.json`:
+You can generate test scenarios using the [Voice Lab Configuration Editor](https://saharmor.me/voice-lab-ui/) or edit `test_details.json`:
 
 1. Open the `test_details.json` file located in the `llm_testing` directory.
 
