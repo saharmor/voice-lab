@@ -12,7 +12,7 @@ A comprehensive testing and evaluation framework for voice agents across languag
 
 # Background
 ### What
-Voice Lab streamlines the process of evaluating and iterating on LLM-powered agents. Whether you're looking to optimize costs by switching to a smaller model, testing newly-released models, or fine-tuning prompts for better performance, Voice Lab provides the tools you need to make data-driven decisions with confidence.
+Voice Lab streamlines the process of evaluating and iterating on LLM-powered agents. Whether you're looking to optimize costs by switching to a smaller model, test newly-released models, or fine-tune prompts for better performance, Voice Lab provides the tools you need to make data-driven decisions with confidence.
 
 _While optimized for voice agents, Voice Lab is valuable for any LLM-powered agent evaluation needs._
 
