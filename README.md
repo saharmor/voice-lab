@@ -1,6 +1,6 @@
 <div align="center">
 
-   # Voice Lab
+   <img width="400" alt="Demo usage" src="https://github.com/saharmor/voice-lab/blob/main/logo.png">
 
    [**Background (What, Why, Solution overview)**](https://github.com/saharmor/voice-lab?tab=readme-ov-file#background) | [**Installation**](https://github.com/saharmor/voice-lab?tab=readme-ov-file#background) | [**Usage**](https://github.com/saharmor/voice-lab?tab=readme-ov-file#background)
 
