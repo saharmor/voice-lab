@@ -4,6 +4,8 @@ import os
 
 from dotenv import load_dotenv
 
+from transcribe import WhisperTranscriber
+
 load_dotenv()
 
 HUGGING_FACE_TOKEN = os.getenv("HUGGING_FACE_TOKEN")
@@ -46,8 +48,12 @@ def find_last_speaker(time_point, speaker_segments):
             last_speaker = speaker
     return last_speaker
 
-# Example usage
+
 audio_file_path = "test.wav"
+transcriber = WhisperTranscriber(model_size="large-v3")
+transcription = transcriber.transcribe(audio_file_path)
+
+
 speaker_segments = get_speaker_segments(audio_file_path)
 pauses = detect_pauses(audio_file_path)
 
