@@ -1,10 +1,6 @@
 openai
 python-dotenv
-opensmile
 numpy
-pydub
 torchaudio
-speechbrain
 pyannote.audio
-faster-whisper
 stable-ts
