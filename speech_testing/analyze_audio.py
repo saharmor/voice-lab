@@ -1,9 +1,12 @@
 import tempfile
 import time
 from pydub import AudioSegment, silence
-import os
+from pyannote.audio import Pipeline
+import torchaudio
 import stable_whisper
+import os
 from dotenv import load_dotenv
+
 
 
 load_dotenv()
@@ -52,31 +55,22 @@ def transcribe_simple(model, audio_file_path: str):
     return model.transcribe(audio_file_path).to_dict()
 
 def analyze_audio(audio_file_path: str, is_first_speaker_agent: bool = False):
-    from pyannote.audio import Pipeline
-    import torchaudio
-
-    # Initialize the speaker diarization pipeline
     pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization@2.1", use_auth_token="YOUR_HUGGINGFACE_TOKEN")
 
-    # Perform speaker diarization
-    print("Processing speaker diarization...")
+    print("Performing speaker diarization...")
     start_time = time.time()
     waveform, sample_rate = torchaudio.load(audio_file_path)
     diarization = pipeline({"waveform": waveform, "sample_rate": sample_rate}, num_speakers=2)
-    # diarization = pipeline(audio_file_path, num_speakers=2)
-    #calcualte how much time it took
     end_time = time.time()
     print(f"Speaker diarization completed in {end_time - start_time:.2f} seconds")
 
     # List to store diarization results
     results = []
-
-    model = stable_whisper.load_model('medium.en')
     speakers_mapping = {
         "SPEAKER_00": "Agent" if is_first_speaker_agent else "Callee",
         "SPEAKER_01": "Callee" if is_first_speaker_agent else "Agent"
     }
-    # Iterate over each diarized segment
+    model = stable_whisper.load_model('medium.en')
     for segment, _, speaker in diarization.itertracks(yield_label=True):
         start_time = segment.start
         end_time = segment.end
@@ -93,7 +87,6 @@ def analyze_audio(audio_file_path: str, is_first_speaker_agent: bool = False):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file: 
             temp_file_path = temp_file.name
             torchaudio.save(temp_file_path, segment_waveform, sample_rate)
-            # Perform speech recognition
             transcription = transcribe_simple(model, temp_file_path)
 
         results.append({
@@ -104,24 +97,8 @@ def analyze_audio(audio_file_path: str, is_first_speaker_agent: bool = False):
         })
 
     detect_interuptions(results)
-    
-
 
 
 audio_file_path = "interuption_tes.wav"
 analyze_audio(audio_file_path)
-# detect_interuptions(result)
-
-
-# transcriber = WhisperTranscriber(model_size="large-v3")
-# transcription = transcriber.transcribe(audio_file_path)
-
-
-# speaker_segments = get_speaker_segments(audio_file_path)
 # pauses = detect_pauses(audio_file_path)
-
-# print("Detected Pauses with Speakers:")
-# for start, duration in pauses:
-#     if duration > 2:
-#         last_speaker = find_last_speaker(start, speaker_segments)
-#         print(f"Start: {start}s, Duration: {duration}s, Last Speaker: {last_speaker}")
