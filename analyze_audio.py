@@ -1,15 +1,12 @@
 from pydub import AudioSegment, silence
 from pyannote.audio import Pipeline
-import torch
+import os
 
-# Function to transcribe audio and get word timestamps
-def transcribe_audio(audio_path):
-    # Load pre-trained ASR model from SpeechBrain
-    asr_model = EncoderDecoderASR.from_hparams(source="speechbrain/asr-crdnn-commonvoice-en", savedir="tmpdir")
-    
-    # Transcribe the audio
-    transcription = asr_model.transcribe_file(audio_path)
-    return transcription
+from dotenv import load_dotenv
+
+load_dotenv()
+
+HUGGING_FACE_TOKEN = os.getenv("HUGGING_FACE_TOKEN")
 
 # Function to detect silence and measure pauses
 def detect_pauses(audio_path, silence_thresh=-50, min_silence_len=500):
@@ -24,7 +21,7 @@ def detect_pauses(audio_path, silence_thresh=-50, min_silence_len=500):
 
 def get_speaker_segments(audio_path):
     pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization@2.1",
-                                        use_auth_token="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")
+                                        use_auth_token=HUGGING_FACE_TOKEN)
 
 
     # apply the pipeline to an audio file
