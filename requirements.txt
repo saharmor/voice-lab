@@ -2,5 +2,7 @@ openai
 python-dotenv
 opensmile
 numpy
-pandas
-soundfile
+pydub
+torchaudio
+speechbrain
+pyannote.audio
