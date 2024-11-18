@@ -166,3 +166,4 @@ test_results/*
 .DS_Store
 
 demo_*
+test.wav

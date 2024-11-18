@@ -1,2 +1,6 @@
 openai
 python-dotenv
+opensmile
+numpy
+pandas
+soundfile
