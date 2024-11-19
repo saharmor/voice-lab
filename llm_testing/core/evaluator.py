@@ -3,10 +3,10 @@ from typing import List, Dict
 from abc import ABC, abstractmethod
 
 
-from core.agent_config import AgentTaskConfig
-from core.interfaces import LLMInterface
-from core.data_types import EntitySpeaking, EvaluationResponse
-from core.personas import CalleePersona
+from .agent_config import AgentTaskConfig
+from .interfaces import LLMInterface
+from .data_types import EntitySpeaking, EvaluationResponse
+from .personas import CalleePersona
 
 
 class ConversationEvaluator(ABC):

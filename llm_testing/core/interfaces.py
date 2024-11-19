@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
-from core.data_types import ConversationContext, EntitySpeaking, LLMResponse
+from .data_types import ConversationContext, EntitySpeaking, LLMResponse
 
 class LLMInterface(ABC):
     """Abstract interface for LLM interactions"""

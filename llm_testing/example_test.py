@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
-from run_tests import run_tests
-from utils.generate_report import generate_test_results_report
+from .run_tests import run_tests
+from .utils.generate_report import generate_test_results_report
 
 if __name__ == "__main__":
     load_dotenv()

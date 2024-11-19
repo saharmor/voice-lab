@@ -1,6 +1,18 @@
+from dataclasses import dataclass
 from enum import Enum
+from typing import List
 
-REQUIRED_AUDIO_TYPE = "float32"
+class Speaker(Enum):
+    AGENT = "Agent"
+    CALLEE = "Callee"
+
+@dataclass
+class CallSegment:
+    start_time: float
+    end_time: float
+    speaker: str
+    text: str
+
 
 class WhisperModelSize(Enum):
     TINY = 'tiny'
@@ -18,3 +30,22 @@ class WhisperModelSize(Enum):
 SPEAKER_MAPPING = {
     -1: "unknown"
 }
+
+@dataclass
+class InterruptionData:
+    interrupted_speaker: Speaker
+    interrupted_at: float
+    interruption_duration: float
+    interruption_text: str
+
+@dataclass
+class PauseData:
+    duration: float
+    start_time: float
+    text_before_pause: str
+    text_after_pause: str
+
+@dataclass
+class SpeechTestResult:
+    interruptions: List[InterruptionData]
+    pauses: List[PauseData]

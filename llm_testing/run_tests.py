@@ -1,13 +1,14 @@
 from itertools import product
 import os
 import json
-from core.agent_config import AgentTaskConfig
-from core.personas import CalleePersona
-from core.data_types import TestedComponent, TestedComponentType
-from utils.generate_report import get_metric_success_indicator
-from test_runner import GoalBasedTestRunner
-from core.evaluator import LLMConversationEvaluator
-from providers.openai import OpenAIProvider
+
+from .core.agent_config import AgentTaskConfig
+from .core.personas import CalleePersona
+from .core.data_types import TestedComponent, TestedComponentType
+from .utils.generate_report import get_metric_success_indicator
+from .test_runner import GoalBasedTestRunner
+from .core.evaluator import LLMConversationEvaluator
+from .providers.openai import OpenAIProvider
 
 
 def generate_test_combinations(test_data):
@@ -91,8 +92,6 @@ def run_tests(tests_to_run: list[str] = [], print_verbose: bool = False):
 
             test_number += 1
             print(f"\n{'-' * 100}\n")
-
-            # break # TODO: remove this, just for dev
 
     print(f"\n\n=== All tests completed: {test_number - 1} ===")
     return tests_results

@@ -4,7 +4,7 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
-from core.agent_config import AgentTaskConfig
+from .agent_config import AgentTaskConfig
 
 @dataclass
 class EvaluationMetadata:

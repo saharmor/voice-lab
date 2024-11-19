@@ -1,32 +1,19 @@
-from dataclasses import dataclass
-from enum import Enum
 import tempfile
 import time
 from typing import List
 from pyannote.audio import Pipeline
 import torchaudio
 import stable_whisper
-import os
 from dotenv import load_dotenv
 
-class Speaker(Enum):
-    AGENT = "Agent"
-    CALLEE = "Callee"
-
-@dataclass
-class CallSegment:
-    start_time: float
-    end_time: float
-    speaker: str
-    text: str
+from speech_testing.data_types import CallSegment, InterruptionData, PauseData, Speaker, SpeechTestResult
 
 
 load_dotenv()
 
-HUGGING_FACE_TOKEN = os.getenv("HUGGING_FACE_TOKEN")
+MIN_PAUSE_DURATION = 1.5
 
-
-def detect_pauses(call_segments: List[CallSegment], min_pause_duration: float = 1.5):
+def detect_pauses(call_segments: List[CallSegment]) -> List[PauseData]:
     pauses = []
     prev_segment = call_segments[0]
     # Check for pauses longer than min_pause_duration seconds between segments
@@ -36,29 +23,24 @@ def detect_pauses(call_segments: List[CallSegment], min_pause_duration: float = 
         # Only check pauses after callee segments
         if prev_segment.speaker == Speaker.CALLEE and current_segment.speaker == Speaker.AGENT:
             pause_duration = current_segment.start_time - prev_segment.end_time
-            if pause_duration > min_pause_duration:
-                pauses.append({
-                    'duration': pause_duration,
-                    'start_time': prev_segment.end_time,
-                    'text_before_pause': prev_segment.text,
-                    'text_after_pause': current_segment.text,
-                })
+            if pause_duration > MIN_PAUSE_DURATION:
+                pauses.append(PauseData(
+                    duration=pause_duration,
+                    start_time=prev_segment.end_time,
+                    text_before_pause=prev_segment.text,
+                    text_after_pause=current_segment.text,
+                ))
 
         prev_segment = current_segment
 
-    # Print detected pauses
-    print(f"\n\n***** Detected {len(pauses)} long pauses (>{min_pause_duration}s) after agent responses")
-    for pause in pauses:
-        print(f"Pause at {pause['start_time']:.2f}s (duration: {pause['duration']:.2f}s). Text before pause: {pause['text_before_pause']}.")
-    
     return pauses
     
-def detect_interuptions(results):
+def detect_interuptions(call_segments: List[CallSegment]) -> List[InterruptionData]:
     interruption_segments = []
     prev_speaker = None
     prev_end_time = 0
     # Analyze segments to detect interruption segments
-    for res in results:
+    for res in call_segments:
         current_speaker = res.speaker
 
         if prev_speaker is not None:
@@ -70,18 +52,24 @@ def detect_interuptions(results):
         prev_speaker = current_speaker
         prev_end_time = res.end_time
 
-    print(f"\n\n***** Interruption segments: {len(interruption_segments)}")
+    interruption_data = []
     for res in interruption_segments:
         duration = res.end_time - res.start_time
         # Find who was interrupted by looking at previous speaker
         interrupted_speaker = Speaker.AGENT if res.speaker == Speaker.CALLEE else Speaker.CALLEE    
-        print(f"Interruption at {res.start_time:.2f}s (duration: {duration:.2f}s) - {res.speaker.value} interrupted {interrupted_speaker.value}")
-        print(f"Transcription: {res.text}\n")
+        interruption_data.append(InterruptionData(  
+            interrupted_speaker=interrupted_speaker,
+            interrupted_at=res.start_time,
+            interruption_duration=duration,
+            interruption_text=res.text
+        ))
+
+    return interruption_data
 
 def transcribe_simple(model, audio_file_path: str):
     return model.transcribe(audio_file_path).to_dict()
 
-def analyze_audio(audio_file_path: str, is_first_speaker_agent: bool = False):
+def analyze_audio(audio_file_path: str, is_first_speaker_agent: bool = False, print_verbose: bool = False):
     pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization@2.1", use_auth_token="YOUR_HUGGINGFACE_TOKEN")
 
     print("Performing speaker diarization...")
@@ -126,8 +114,19 @@ def analyze_audio(audio_file_path: str, is_first_speaker_agent: bool = False):
     interuptions = detect_interuptions(call_segments)
     pauses = detect_pauses(call_segments)
 
+    if print_verbose:
+        print(f"\n\n***** Detected {len(pauses)} long pauses (>{MIN_PAUSE_DURATION}s) after callee responses")
+        for pause in pauses:
+            print(f"Pause at {pause.start_time:.2f}s (duration: {pause.duration:.2f}s). Text before pause: {pause.text_before_pause}.")
+    
+        print(f"\n\n***** Interruption segments: {len(interuptions)}")
+        for interruption in interuptions:
+            print(f"Interruption at {interruption.interrupted_at:.2f}s (duration: {interruption.interruption_duration:.2f}s) - {interruption.interrupted_speaker.value} interrupted {interruption.interrupted_speaker.value}")
+            print(f"Transcription: {interruption.interruption_text}\n")
+            
 
-# audio_file_path = "pauses_test.wav"
-audio_file_path = "interruption_test.wav"
-analyze_audio(audio_file_path)
-# pauses = detect_pauses(audio_file_path)
+    # TODO SpeechTestResult abstract - should be a list of test_type and test_result, later interpreted by whoever consumes it
+    return SpeechTestResult(
+        interruptions=interuptions,
+        pauses=pauses
+    )
