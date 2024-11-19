@@ -1,6 +1,8 @@
 import os
 from typing import List
 
+from speech_testing.data_types import CallSegment, InterruptionData, PauseData, Speaker, SpeechTestResult
+
 from .analyze_audio import analyze_audio
     
 def run_tests(audio_files: List[str]):
@@ -18,4 +20,5 @@ def run_tests(audio_files: List[str]):
         test_number += 1
 
     print(f"\n\n=== All speech tests completed: {test_number - 1} ===")
+
     return tests_results

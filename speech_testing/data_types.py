@@ -10,7 +10,7 @@ class Speaker(Enum):
 class CallSegment:
     start_time: float
     end_time: float
-    speaker: str
+    speaker: Speaker
     text: str
 
 
@@ -47,5 +47,6 @@ class PauseData:
 
 @dataclass
 class SpeechTestResult:
+    call_segments: List[CallSegment]
     interruptions: List[InterruptionData]
     pauses: List[PauseData]

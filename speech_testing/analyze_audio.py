@@ -69,7 +69,7 @@ def detect_interuptions(call_segments: List[CallSegment]) -> List[InterruptionDa
 def transcribe_simple(model, audio_file_path: str):
     return model.transcribe(audio_file_path).to_dict()
 
-def analyze_audio(audio_file_path: str, is_first_speaker_agent: bool = False, print_verbose: bool = False):
+def analyze_audio(audio_file_path: str, is_first_speaker_agent: bool = False, print_verbose: bool = False) -> SpeechTestResult:
     pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization@2.1", use_auth_token="YOUR_HUGGINGFACE_TOKEN")
 
     print("Performing speaker diarization...")
@@ -127,6 +127,7 @@ def analyze_audio(audio_file_path: str, is_first_speaker_agent: bool = False, pr
 
     # TODO SpeechTestResult abstract - should be a list of test_type and test_result, later interpreted by whoever consumes it
     return SpeechTestResult(
+        call_segments=call_segments,
         interruptions=interuptions,
-        pauses=pauses
+        pauses=pauses,
     )

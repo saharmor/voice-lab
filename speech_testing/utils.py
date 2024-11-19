@@ -1,6 +1,5 @@
 
-from data_types import SPEAKER_MAPPING
-
+from .data_types import SPEAKER_MAPPING, CallSegment, InterruptionData, PauseData, Speaker, SpeechTestResult
 
 def jsonify_transcription(transcription):
     """
@@ -89,3 +88,70 @@ def extract_speaker_id(speaker_label):
         return speaker_number
     except (ValueError, TypeError) as e:
         return -1
+    
+def generate_mock_test_result():
+    # generate mock test_result
+    test_result = SpeechTestResult(
+        call_segments=[
+            CallSegment(
+                speaker=Speaker.CALLEE,
+                text="Hello, this is Sarah from United Airlines. How may I help you today?",
+                start_time=0.0,
+                end_time=4.2
+            ),
+            CallSegment(
+                speaker=Speaker.AGENT, 
+                text="Hi, I'd like to change my seat to a window seat please.",
+                start_time=4.5,
+                end_time=7.8
+            ),
+            CallSegment(
+                speaker=Speaker.CALLEE,
+                text="I can help you with that. Let me check what window seats are available. I see we have 15A and 17F available. The seat change fee would be $50.",
+                start_time=8.2,
+                end_time=15.5
+            ),
+            CallSegment(
+                speaker=Speaker.AGENT,
+                text="That works for me. I'll take 15A please.",
+                start_time=16.0,
+                end_time=18.3
+            ),
+            CallSegment(
+                speaker=Speaker.CALLEE, 
+                text="OKAAAY. Great, I've changed your seat to 15A. The $50 fee has been charged to your card on file. Is there anything else I can help you with?",
+                start_time=17.8,
+                end_time=25.4
+            ),
+            CallSegment(
+                speaker=Speaker.AGENT,
+                text="No that's all, thank you.",
+                start_time=30.8,
+                end_time=32.2
+            ),
+            CallSegment(
+                speaker=Speaker.CALLEE,
+                text="You're welcome. Have a great flight!",
+                start_time=32.5,
+                end_time=34.8
+            )
+        ],
+        interruptions=[
+            InterruptionData(
+                interrupted_speaker=Speaker.AGENT, 
+                interrupted_at=17.8,
+                interruption_duration=7.6,
+                interruption_text="OKAAAY. Great, I've changed your seat to 15A. The $50 fee has been charged to your card on file. Is there anything else I can help you with?"
+            )
+        ],
+        pauses=[
+            PauseData(
+                duration=5.4,
+                start_time=30.8,
+                text_before_pause="OKAAAY. Great, I've changed your seat to 15A. The $50 fee has been charged to your card on file. Is there anything else I can help you with?",
+                text_after_pause="No that's all, thank you."
+            ),
+        ]
+    )
+
+    return test_result
