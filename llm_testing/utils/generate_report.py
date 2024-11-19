@@ -129,7 +129,7 @@ def generate_test_results_report(tests_run_result: TestResult):
             </button>
           </td>
           <td class="llm-column">
-            <span class="llm-badge">{tests_run_result["tested_component"][0]}</span>
+            {f'<span class="llm-badge">{tests_run_result["tested_component"][0]}</span>' if tests_run_result["tested_component"] else ''}
           </td>"""
 
         # Create a dict for quick metric lookup, sorted alphabetically by metric name

@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import Dict, List
 
 from .data_types import CallSegment, Speaker, SpeechTestResult
 from .data_types import CallSegment, Speaker, SpeechTestResult
@@ -10,6 +10,8 @@ import tempfile
 import time
 from typing import List
 from pyannote.audio import Pipeline
+from pyannote.audio.pipelines.utils.hook import ProgressHook
+
 import torchaudio
 import stable_whisper
 
@@ -17,27 +19,37 @@ import stable_whisper
 def transcribe_simple(model, audio_file_path: str):
     return model.transcribe(audio_file_path).to_dict()
 
-def transcribe_audio(audio_file_path: str, is_first_speaker_agent: bool) -> List[CallSegment]:
-    HUGGING_FACE_TOKEN = os.getenv("HUGGING_FACE_TOKEN")
-    if not HUGGING_FACE_TOKEN:
+def diarize_audio(audio_file_path: str) -> List[CallSegment]:
+    api_key = os.getenv("HUGGING_FACE_TOKEN")
+    if not api_key:
         raise ValueError("Please set HUGGING_FACE_TOKEN environment variable")
 
-    pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization@2.1", use_auth_token=HUGGING_FACE_TOKEN)
+
+    
+    pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization@2.1", use_auth_token=api_key)
 
     print("Performing speaker diarization...")
     start_time = time.time()
     waveform, sample_rate = torchaudio.load(audio_file_path)
-    diarization = pipeline({"waveform": waveform, "sample_rate": sample_rate}, num_speakers=2)
+    with ProgressHook() as hook:
+        diarization = pipeline({"waveform": waveform, "sample_rate": sample_rate}, num_speakers=2, hook=hook)
     end_time = time.time()
     print(f"--> ✨ Speaker diarization completed in {end_time - start_time:.2f} seconds")
+    return diarization
 
-    # List to store diarization results
+
+def transcribe_audio(audio_file_path: str, is_first_speaker_agent: bool) -> List[CallSegment]:# List to store diarization results
     call_segments = []
     speakers_mapping = {
         "SPEAKER_00": Speaker.AGENT if is_first_speaker_agent else Speaker.CALLEE,
         "SPEAKER_01": Speaker.CALLEE if is_first_speaker_agent else Speaker.AGENT
     }
     model = stable_whisper.load_model('medium.en')
+    waveform, sample_rate = torchaudio.load(audio_file_path)
+    diarization = diarize_audio(audio_file_path)
+    if not diarization:
+        raise ValueError("No diarization results found")
+    
     for segment, _, speaker in diarization.itertracks(yield_label=True):
         start_time = segment.start
         end_time = segment.end
@@ -62,6 +74,8 @@ def transcribe_audio(audio_file_path: str, is_first_speaker_agent: bool) -> List
             speaker=speakers_mapping[speaker],
             text=transcription['text'].strip()
         ))
+    
+    return call_segments
 
 def analyze_audio(audio_file_path: str, is_first_speaker_agent: bool = False, print_verbose: bool = False) -> SpeechTestResult:
     call_segments = transcribe_audio(audio_file_path, is_first_speaker_agent)
@@ -88,18 +102,14 @@ def analyze_audio(audio_file_path: str, is_first_speaker_agent: bool = False, pr
 
 
 
-def run_tests(audio_files: List[str]):
-    api_key = os.getenv("HUGGING_FACE_TOKEN")
-    if not api_key:
-        raise ValueError("Please set HUGGING_FACE_TOKEN environment variable")
-
+def run_tests(audio_files_dir: str) -> Dict[str, SpeechTestResult]:
     # TODO tests should be intuerrptions, pauses, etc. Refactor accordingly
     test_number = 1
-    tests_results = []
-    for audio_file in audio_files:
-        print(f"\n\n=== Running speech test {test_number} of {len(audio_files)}: {audio_file} ===")
-        test_result = analyze_audio(audio_file)   
-        tests_results.append(test_result)
+    tests_results = {}
+    for audio_file in os.listdir(audio_files_dir):
+        print(f"\n\n=== Running speech test {test_number} of {len(os.listdir(audio_files_dir))} with [{audio_file}] ===")
+        test_result = analyze_audio(os.path.join(audio_files_dir, audio_file))   
+        tests_results[audio_file] = test_result
         test_number += 1
 
     print(f"\n\n=== All speech tests completed: {test_number - 1} ===")

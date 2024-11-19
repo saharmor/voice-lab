@@ -166,6 +166,5 @@ test_results/*
 .DS_Store
 
 demo_*
+speech_testing/audio_files/*
 test.wav
-pauses_test.wav
-interruption_test.wav
