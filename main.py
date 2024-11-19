@@ -47,7 +47,7 @@ suppress_output()
 # generate_test_results_report(test_result)
 
 # Run speech-based tests
-test_result = run_speech_tests(["interruption_test.wav"])
+tests_result = run_speech_tests(["interruption_test.wav"])
 # test_result = generate_mock_test_result()
 
 
@@ -59,6 +59,8 @@ evaluator = LLMConversationEvaluator(evaluator_llm)
 # generate mock test_result
 
 conversation_history = []
+completed_tests = []
+test_result = tests_result[0]
 for call_segment in test_result.call_segments:
     conversation_history.append({
         "speaker": EntitySpeaking.CALLEE.value if call_segment.speaker == Speaker.CALLEE else EntitySpeaking.VOICE_AGENT.value,

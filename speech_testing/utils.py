@@ -154,4 +154,4 @@ def generate_mock_test_result():
         ]
     )
 
-    return test_result
+    return [test_result]
