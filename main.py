@@ -34,7 +34,7 @@ def suppress_output(all_output=False):
         tqdm.monitor_interval = 0  # Disable tqdm warning
 
 
-suppress_output(all_output=True)
+suppress_output(all_output=False)
 
 # Run text-based tests
 # test_result = run_llm_tests()
@@ -60,16 +60,16 @@ for audio_file, test_result in tests_result.items():
         MetricResult(name="interruptions", eval_output_type="success_flag",
                   eval_output="true" if len(test_result.interruptions) == 0 else "false",
                   eval_output_success_threshold=1,
-                  reasoning=f"Had {len(test_result.interruptions)} interruptions.",
-                  evidence="\n".join([f"Interruption at {i.interrupted_at:.2f}s: {i.interruption_text}" for i in test_result.interruptions]) if test_result.interruptions else "")
+                  reasoning=f"Had {len(test_result.interruptions)} interruptions.\n" + ("\n".join([f"Interruption at {i.interrupted_at:.2f}s: {i.interruption_text}" for i in test_result.interruptions]) if test_result.interruptions else ""),
+                  evidence="")
     )
     
     evaluation_result.evaluation_results.append(
         MetricResult(name="pauses", eval_output_type="success_flag",
                       eval_output="true" if len(test_result.pauses) == 0 else "false",
                   eval_output_success_threshold=1,
-                  reasoning=f"Had {len(test_result.pauses)} pauses.",
-                  evidence="\n".join([f"Pause at {p.start_time:.2f}s (duration: {p.duration:.2f}s)" for p in test_result.pauses]) if test_result.pauses else "")
+                  reasoning=f"Had {len(test_result.pauses)} pauses.\n" + ("\n".join([f"Pause at {p.start_time:.2f}s (duration: {p.duration:.2f}s)" for p in test_result.pauses]) if test_result.pauses else ""),
+                  evidence="")
     )
 
     completed_tests[audio_file] = {

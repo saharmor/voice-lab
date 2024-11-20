@@ -148,7 +148,7 @@ def generate_test_results_report(tests_run_result: TestResult):
                 html += f"""
           <td>
             <div class="result {success_class}">{symbol} {success}{score}</div>
-                <div class="reasoning">{metric.reasoning}</div>
+                <div class="reasoning">{metric.reasoning.replace('\n', '<br>')}</div>
               </td>"""
             else:
                 html += """
