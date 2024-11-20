@@ -1,10 +1,14 @@
+import json
 import os
 from typing import Dict, List
 
-from .data_types import CallSegment, Speaker, SpeechTestResult
-from .data_types import CallSegment, Speaker, SpeechTestResult
-from .metrics.interruptions import detect_interuptions
-from .metrics.pauses import MIN_PAUSE_DURATION, detect_pauses
+from llm_testing.core.data_types import EntitySpeaking
+
+from llm_testing.providers.openai import OpenAIProvider
+
+from speech_testing.data_types import CallSegment, SpeechTestResult
+from speech_testing.metrics.interruptions import detect_interuptions
+from speech_testing.metrics.pauses import MIN_PAUSE_DURATION, detect_pauses
     
 import tempfile
 import time
@@ -24,9 +28,8 @@ def diarize_audio(audio_file_path: str) -> List[CallSegment]:
     if not api_key:
         raise ValueError("Please set HUGGING_FACE_TOKEN environment variable")
 
-
-    
-    pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization@2.1", use_auth_token=api_key)
+    pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1", use_auth_token=api_key)
+    # pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization", use_auth_token=api_key)
 
     print("Performing speaker diarization...")
     start_time = time.time()
@@ -38,18 +41,36 @@ def diarize_audio(audio_file_path: str) -> List[CallSegment]:
     return diarization
 
 
-def transcribe_audio(audio_file_path: str, is_first_speaker_agent: bool) -> List[CallSegment]:# List to store diarization results
+def determine_speakers(transcription: List[CallSegment], agent_task: str) -> Dict[str, EntitySpeaking]:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("Please set OPENAI_API_KEY environment variable")
+
+    provider = OpenAIProvider(api_key, "gpt-4o")
+    system_prompt = f'''I'm building a voice agent that calls people and businesses on my behalf. Here's a call transcript. Your role is to determine who is SPEAKER_00 and who is SPEAKER_01 by looking at the task I gave my voice agent and the transcript.
+Return a json with the following format: {{"speaker_00": "callee" | "voice_agent", "speaker_01": "callee" | "voice_agent"}}
+Return None if you cannot determine who is speaking or if there are more than 2 speakers.
+DON'T RETURN ANYTHING ELSE BUT THE JSON. Format it correctly as I load it into a dictionary in python.
+    
+    # Task
+    {agent_task}'''
+    conversation_history = "\n".join([f"{segment.speaker}: {segment.text}" for segment in transcription])
+    messages = [{"role": "user", "content": conversation_history}]
+    response = provider.plain_call(system_prompt, messages)
+    try:
+        return json.loads(response.response_content)
+    except json.JSONDecodeError:
+        raise ValueError("Could not determine speakers - invalid JSON response")
+
+def transcribe_audio(audio_file_path: str, agent_task: str) -> List[CallSegment]:#
     call_segments = []
-    speakers_mapping = {
-        "SPEAKER_00": Speaker.AGENT if is_first_speaker_agent else Speaker.CALLEE,
-        "SPEAKER_01": Speaker.CALLEE if is_first_speaker_agent else Speaker.AGENT
-    }
-    model = stable_whisper.load_model('medium.en')
+    model = stable_whisper.load_model('large-v3-turbo')
     waveform, sample_rate = torchaudio.load(audio_file_path)
     diarization = diarize_audio(audio_file_path)
     if not diarization:
         raise ValueError("No diarization results found")
     
+    print(f"About to process {len(diarization)} segments")
     for segment, _, speaker in diarization.itertracks(yield_label=True):
         start_time = segment.start
         end_time = segment.end
@@ -68,17 +89,26 @@ def transcribe_audio(audio_file_path: str, is_first_speaker_agent: bool) -> List
             torchaudio.save(temp_file_path, segment_waveform, sample_rate)
             transcription = transcribe_simple(model, temp_file_path)
 
-        call_segments.append(CallSegment(
-            start_time=start_time,
-            end_time=end_time,
-            speaker=speakers_mapping[speaker],
-            text=transcription['text'].strip()
-        ))
+        if transcription:
+            call_segments.append(CallSegment(
+                start_time=start_time,
+                end_time=end_time,
+                speaker=speaker,
+                text=transcription['text'].strip()
+            ))
     
+    speakers_mapping = determine_speakers(call_segments, agent_task)
+
+    # fix speaker names
+    for call_segment in call_segments:
+        call_segment.speaker = speakers_mapping[call_segment.speaker]
+
     return call_segments
 
-def analyze_audio(audio_file_path: str, is_first_speaker_agent: bool = False, print_verbose: bool = False) -> SpeechTestResult:
-    call_segments = transcribe_audio(audio_file_path, is_first_speaker_agent)
+
+
+def analyze_audio(audio_file_path: str, agent_task: str, print_verbose: bool = False) -> SpeechTestResult:
+    call_segments = transcribe_audio(audio_file_path, agent_task)
     interuptions = detect_interuptions(call_segments)
     pauses = detect_pauses(call_segments)
 
@@ -102,15 +132,21 @@ def analyze_audio(audio_file_path: str, is_first_speaker_agent: bool = False, pr
 
 
 
-def run_tests(audio_files_dir: str) -> Dict[str, SpeechTestResult]:
-    # TODO tests should be intuerrptions, pauses, etc. Refactor accordingly
+def run_tests(audio_files_dir: str, agent_task: str) -> Dict[str, SpeechTestResult]:
+    # TODO Metrics should be intuerrptions, pauses, etc. Refactor accordingly
     test_number = 1
     tests_results = {}
     for audio_file in os.listdir(audio_files_dir):
+        if not audio_file.startswith("11x"):
+            continue
+
         print(f"\n\n=== Running speech test {test_number} of {len(os.listdir(audio_files_dir))} with [{audio_file}] ===")
-        test_result = analyze_audio(os.path.join(audio_files_dir, audio_file))   
+        test_result = analyze_audio(os.path.join(audio_files_dir, audio_file), agent_task)   
         tests_results[audio_file] = test_result
         test_number += 1
+
+        # TODO remove, just for faster debugging
+        break
 
     print(f"\n\n=== All speech tests completed: {test_number - 1} ===")
 

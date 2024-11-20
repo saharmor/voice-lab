@@ -1,6 +1,5 @@
-from llm_testing.core.data_types import EntitySpeaking, EvaluationResponse, MetricResult, TestResult
+from llm_testing.core.data_types import EvaluationResponse, MetricResult, TestResult
 from llm_testing.utils.generate_report import generate_test_results_report
-from speech_testing.data_types import Speaker
 from speech_testing.run_tests import run_tests as run_speech_tests
 
 from dotenv import load_dotenv
@@ -41,9 +40,10 @@ suppress_output(all_output=False)
 # generate_test_results_report(test_result)
 
 # Run speech-based tests
-tests_result = run_speech_tests("speech_testing/audio_files")
+tests_result = run_speech_tests("speech_testing/audio_files",
+                               "Qualify leads for a new voice agent called Jordan")
 # tests_result = generate_mock_test_result()
-
+# temp = determine_speakers(tests_result[0].call_segments, "Book a seat on a flight")
 
 
 completed_tests = {}
@@ -51,8 +51,9 @@ for audio_file, test_result in tests_result.items():
     conversation_history = []
     for call_segment in test_result.call_segments:
         conversation_history.append({
-            "speaker": EntitySpeaking.CALLEE.value if call_segment.speaker == Speaker.CALLEE else EntitySpeaking.VOICE_AGENT.value,
-            "text": call_segment.text
+            "speaker": call_segment.speaker.value,
+            "text": call_segment.text,
+            "timestamp": call_segment.start_time
         })
     
     evaluation_result = EvaluationResponse(summary="mock summary", evaluation_results=[])
@@ -60,16 +61,16 @@ for audio_file, test_result in tests_result.items():
         MetricResult(name="interruptions", eval_output_type="success_flag",
                   eval_output="true" if len(test_result.interruptions) == 0 else "false",
                   eval_output_success_threshold=1,
-                  reasoning=f"Had {len(test_result.interruptions)} interruptions.\n" + ("\n".join([f"Interruption at {i.interrupted_at:.2f}s: {i.interruption_text}" for i in test_result.interruptions]) if test_result.interruptions else ""),
+                  reasoning=f"Had {len(test_result.interruptions)} interruptions.\n" + ("\n".join([f"\nInterruption at {i.interrupted_at:.2f}s:\nText that interrupted: {i.interruption_text}\n" for i in test_result.interruptions]) if test_result.interruptions else ""),
                   evidence="")
     )
     
     evaluation_result.evaluation_results.append(
         MetricResult(name="pauses", eval_output_type="success_flag",
                       eval_output="true" if len(test_result.pauses) == 0 else "false",
-                  eval_output_success_threshold=1,
-                  reasoning=f"Had {len(test_result.pauses)} pauses.\n" + ("\n".join([f"Pause at {p.start_time:.2f}s (duration: {p.duration:.2f}s)" for p in test_result.pauses]) if test_result.pauses else ""),
-                  evidence="")
+                      eval_output_success_threshold=1,
+                      reasoning=f"Had {len(test_result.pauses)} pauses.\n" + ("\n".join([f"Pause at {p.start_time:.2f}s (duration: {p.duration:.2f}s)" for p in test_result.pauses]) if test_result.pauses else ""),
+                      evidence="")
     )
 
     completed_tests[audio_file] = {

@@ -96,43 +96,43 @@ def generate_mock_test_result():
     test_result = SpeechTestResult(
         call_segments=[
             CallSegment(
-                speaker=EntitySpeaking.CALLEE,
+                speaker="SPEAKER_00",
                 text="Hello, this is Sarah from United Airlines. How may I help you today?",
                 start_time=0.0,
                 end_time=4.2
             ),
             CallSegment(
-                speaker=EntitySpeaking.VOICE_AGENT, 
+                speaker="SPEAKER_01", 
                 text="Hi, I'd like to change my seat to a window seat please.",
                 start_time=4.5,
                 end_time=7.8
             ),
             CallSegment(
-                speaker=EntitySpeaking.CALLEE,
+                speaker="SPEAKER_00",
                 text="I can help you with that. Let me check what window seats are available. I see we have 15A and 17F available. The seat change fee would be $50.",
                 start_time=8.2,
                 end_time=15.5
             ),
             CallSegment(
-                speaker=EntitySpeaking.VOICE_AGENT,
+                speaker="SPEAKER_01",
                 text="That works for me. I'll take 15A please.",
                 start_time=16.0,
                 end_time=18.3
             ),
             CallSegment(
-                speaker=EntitySpeaking.CALLEE, 
+                speaker="SPEAKER_00", 
                 text="OKAAAY. Great, I've changed your seat to 15A. The $50 fee has been charged to your card on file. Is there anything else I can help you with?",
                 start_time=17.8,
                 end_time=25.4
             ),
             CallSegment(
-                speaker=EntitySpeaking.VOICE_AGENT,
+                speaker="SPEAKER_01",
                 text="No that's all, thank you.",
                 start_time=30.8,
                 end_time=32.2
             ),
             CallSegment(
-                speaker=EntitySpeaking.CALLEE,
+                speaker="SPEAKER_00",
                 text="You're welcome. Have a great flight!",
                 start_time=32.5,
                 end_time=34.8
@@ -140,7 +140,7 @@ def generate_mock_test_result():
         ],
         interruptions=[
             InterruptionData(
-                interrupted_speaker=EntitySpeaking.VOICE_AGENT, 
+                interrupted_speaker="SPEAKER_01", 
                 interrupted_at=17.8,
                 interruption_duration=7.6,
                 interruption_text="OKAAAY. Great, I've changed your seat to 15A. The $50 fee has been charged to your card on file. Is there anything else I can help you with?"
@@ -156,13 +156,13 @@ def generate_mock_test_result():
         ]
     )
 
-    return [test_result]
+    return {"mock_test_result": test_result}
 
 def call_segments_to_conversation_history(call_segments: List[CallSegment]) -> List[Dict[str, Any]]:
     conversation_history = []
     for call_segment in call_segments:
         conversation_history.append({
-            "speaker": EntitySpeaking.CALLEE.value if call_segment.speaker == EntitySpeaking.CALLEE else EntitySpeaking.VOICE_AGENT.value,
+            "speaker": "SPEAKER_00".value if call_segment.speaker == "SPEAKER_00" else "SPEAKER_01".value,
             "text": call_segment.text
         })
 

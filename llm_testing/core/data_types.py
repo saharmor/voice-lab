@@ -70,6 +70,7 @@ class EntitySpeaking(Enum):
     """Represents the entity speaking in the conversation"""
     VOICE_AGENT = "voice_agent"
     CALLEE = "callee"
+    UNKNOWN = "unknown"
 
 class TestedComponentType(Enum):
     """Represents the component being tested"""
