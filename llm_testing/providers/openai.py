@@ -11,6 +11,9 @@ class OpenAIProvider(LLMInterface):
         openai.api_key = api_key
         self.client = openai.OpenAI(api_key=api_key)
 
+    def plain_call(self, system_prompt: str, messages: List[Dict[str, Any]]) -> LLMResponse:
+        return self.generate_response([{"role": "system", "content": system_prompt}] + messages)
+    
     def generate_response_with_conversation_history(self, context: ConversationContext,
                                                      entity_speaking: EntitySpeaking,
                                                      tools: Optional[List[Dict[str, Any]]] = None,

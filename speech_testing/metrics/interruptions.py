@@ -1,5 +1,6 @@
 from typing import List
-from speech_testing.data_types import CallSegment, InterruptionData, Speaker
+from llm_testing.core.data_types import EntitySpeaking
+from ..data_types import CallSegment, InterruptionData
 
 
 def detect_interuptions(call_segments: List[CallSegment]) -> List[InterruptionData]:
@@ -11,19 +12,21 @@ def detect_interuptions(call_segments: List[CallSegment]) -> List[InterruptionDa
         current_speaker = res.speaker
 
         if prev_speaker is not None:
-            # Check if speaker has changed and if the start time is smaller or equal than last end time
-            if current_speaker != prev_speaker and res.start_time <= prev_end_time:
-                interruption_segments.append(res)
+            # Check if speaker has changed and if the initial speaker's speech start time is smaller or equal than last end time
+            if current_speaker != prev_speaker:
+                # Only update prev_end_time when speaker changes
+                if res.start_time <= prev_end_time:
+                    interruption_segments.append(res)
+                prev_end_time = res.end_time
 
-        # Update previous speaker and end time
+        # Only update previous speaker
         prev_speaker = current_speaker
-        prev_end_time = res.end_time
 
     interruption_data = []
     for res in interruption_segments:
         duration = res.end_time - res.start_time
         # Find who was interrupted by looking at previous speaker
-        interrupted_speaker = Speaker.AGENT if res.speaker == Speaker.CALLEE else Speaker.CALLEE    
+        interrupted_speaker = EntitySpeaking.VOICE_AGENT if res.speaker == EntitySpeaking.CALLEE else EntitySpeaking.CALLEE    
         interruption_data.append(InterruptionData(  
             interrupted_speaker=interrupted_speaker,
             interrupted_at=res.start_time,

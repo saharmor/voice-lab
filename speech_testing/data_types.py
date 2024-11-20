@@ -2,15 +2,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List
 
-class Speaker(Enum):
-    AGENT = "Agent"
-    CALLEE = "Callee"
+from llm_testing.core.data_types import EntitySpeaking
 
 @dataclass
 class CallSegment:
     start_time: float
     end_time: float
-    speaker: Speaker
+    speaker: EntitySpeaking
     text: str
 
 
@@ -33,7 +31,7 @@ SPEAKER_MAPPING = {
 
 @dataclass
 class InterruptionData:
-    interrupted_speaker: Speaker
+    interrupted_speaker: EntitySpeaking
     interrupted_at: float
     interruption_duration: float
     interruption_text: str

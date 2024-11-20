@@ -1,5 +1,7 @@
 
-from .data_types import SPEAKER_MAPPING, CallSegment, InterruptionData, PauseData, Speaker, SpeechTestResult
+from typing import Any, Dict, List
+from llm_testing.core.data_types import EntitySpeaking
+from .data_types import SPEAKER_MAPPING, CallSegment, InterruptionData, PauseData, SpeechTestResult
 
 def jsonify_transcription(transcription):
     """
@@ -94,43 +96,43 @@ def generate_mock_test_result():
     test_result = SpeechTestResult(
         call_segments=[
             CallSegment(
-                speaker=Speaker.CALLEE,
+                speaker=EntitySpeaking.CALLEE,
                 text="Hello, this is Sarah from United Airlines. How may I help you today?",
                 start_time=0.0,
                 end_time=4.2
             ),
             CallSegment(
-                speaker=Speaker.AGENT, 
+                speaker=EntitySpeaking.VOICE_AGENT, 
                 text="Hi, I'd like to change my seat to a window seat please.",
                 start_time=4.5,
                 end_time=7.8
             ),
             CallSegment(
-                speaker=Speaker.CALLEE,
+                speaker=EntitySpeaking.CALLEE,
                 text="I can help you with that. Let me check what window seats are available. I see we have 15A and 17F available. The seat change fee would be $50.",
                 start_time=8.2,
                 end_time=15.5
             ),
             CallSegment(
-                speaker=Speaker.AGENT,
+                speaker=EntitySpeaking.VOICE_AGENT,
                 text="That works for me. I'll take 15A please.",
                 start_time=16.0,
                 end_time=18.3
             ),
             CallSegment(
-                speaker=Speaker.CALLEE, 
+                speaker=EntitySpeaking.CALLEE, 
                 text="OKAAAY. Great, I've changed your seat to 15A. The $50 fee has been charged to your card on file. Is there anything else I can help you with?",
                 start_time=17.8,
                 end_time=25.4
             ),
             CallSegment(
-                speaker=Speaker.AGENT,
+                speaker=EntitySpeaking.VOICE_AGENT,
                 text="No that's all, thank you.",
                 start_time=30.8,
                 end_time=32.2
             ),
             CallSegment(
-                speaker=Speaker.CALLEE,
+                speaker=EntitySpeaking.CALLEE,
                 text="You're welcome. Have a great flight!",
                 start_time=32.5,
                 end_time=34.8
@@ -138,7 +140,7 @@ def generate_mock_test_result():
         ],
         interruptions=[
             InterruptionData(
-                interrupted_speaker=Speaker.AGENT, 
+                interrupted_speaker=EntitySpeaking.VOICE_AGENT, 
                 interrupted_at=17.8,
                 interruption_duration=7.6,
                 interruption_text="OKAAAY. Great, I've changed your seat to 15A. The $50 fee has been charged to your card on file. Is there anything else I can help you with?"
@@ -155,3 +157,35 @@ def generate_mock_test_result():
     )
 
     return [test_result]
+
+def call_segments_to_conversation_history(call_segments: List[CallSegment]) -> List[Dict[str, Any]]:
+    conversation_history = []
+    for call_segment in call_segments:
+        conversation_history.append({
+            "speaker": EntitySpeaking.CALLEE.value if call_segment.speaker == EntitySpeaking.CALLEE else EntitySpeaking.VOICE_AGENT.value,
+            "text": call_segment.text
+        })
+
+    return conversation_history
+
+# evaluation_result = evaluator.evaluate(
+#     conversation_history,
+#     task_config=AgentTaskConfig(
+#         system_prompt="Order a pizza",
+#         initial_message="Hi, I'd like to order a pizza.",
+#         tool_calls=[],
+#         success_criteria={
+#             "pizza_ordered": "The customer has ordered a pizza."
+#         }
+#     ),
+#     persona=CalleePersona(
+#         name="Sarah",
+#         role="callee",
+#         description="A helpful and friendly pizza person",
+#         traits=["helpful", "friendly"],
+#         initial_message="Hi, I'd like to order a pizza.",
+#         mood=Mood.HAPPY,
+#         response_style=ResponseStyle.FRIENDLY,
+#         additional_context={})
+# )
+
