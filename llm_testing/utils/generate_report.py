@@ -171,7 +171,7 @@ def generate_test_results_report(tests_run_result: TestResult):
             role = ' '.join(word.capitalize() for word in message["speaker"].replace('_', ' ').split())
             content = message["text"]
             message_class = "human-message" if role == EntitySpeaking.CALLEE else "assistant-message"
-            timestamp_html = f"[{message['timestamp']:.1f}s] |" if 'timestamp' in message else ""
+            timestamp_html = f"[{message['timestamp']:.1f}s] " if 'timestamp' in message else ""
             modals_html += f"""
               <div class="message {message_class}">
                 <strong>{timestamp_html} {role}</strong><br>

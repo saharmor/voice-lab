@@ -23,6 +23,55 @@ import stable_whisper
 def transcribe_simple(model, audio_file_path: str):
     return model.transcribe(audio_file_path).to_dict()
 
+def test_merge_diarization_and_transcription(diarization, transcription):
+    from pyannote.core import Segment
+    import pandas as pd
+
+    # Convert diarization result to a DataFrame for easier handling
+    diarization_df = pd.DataFrame(
+        [
+            {
+                "start": segment.start,
+                "end": segment.end,
+                "speaker": speaker_label
+            }
+            for segment, _, speaker_label in diarization.itertracks(yield_label=True)
+        ]
+    )
+    
+    # Prepare a list to hold the final results
+    final_transcriptions = []
+
+    # Iterate over the words from the ASR result
+    for segment in transcription["segments"]:
+        for word_info in segment["words"]:
+            word_start = word_info["start"]
+            word_end = word_info["end"]
+            word_text = word_info["word"].strip()
+            
+            # Find the speaker for this word
+            # Check which diarization segment the word falls into
+            speaker = None
+            for idx, row in diarization_df.iterrows():
+                if word_end > row["start"] and word_start < row["end"]:
+                    speaker = row["speaker"]
+                    break
+        
+        # If no speaker is found, label as 'Unknown' or skip
+        if not speaker:
+            speaker = "Unknown"
+        
+        # Append to final transcriptions
+        final_transcriptions.append({
+            "speaker": speaker,
+            "start_time": word_start,
+            "end_time": word_end,
+            "text": word_text
+        })
+
+    return final_transcriptions
+
+
 def diarize_audio(audio_file_path: str) -> List[CallSegment]:
     api_key = os.getenv("HUGGING_FACE_TOKEN")
     if not api_key:
@@ -38,6 +87,9 @@ def diarize_audio(audio_file_path: str) -> List[CallSegment]:
         diarization = pipeline({"waveform": waveform, "sample_rate": sample_rate}, num_speakers=2, hook=hook)
     end_time = time.time()
     print(f"--> ✨ Speaker diarization completed in {end_time - start_time:.2f} seconds")
+    
+    model = stable_whisper.load_model('medium.en')
+    test_merge_diarization_and_transcription(diarization, transcribe_simple(model, audio_file_path))
     return diarization
 
 
@@ -64,7 +116,7 @@ DON'T RETURN ANYTHING ELSE BUT THE JSON. Format it correctly as I load it into a
 
 def transcribe_audio(audio_file_path: str, agent_task: str) -> List[CallSegment]:#
     call_segments = []
-    model = stable_whisper.load_model('large-v3-turbo')
+    model = stable_whisper.load_model('medium.en')
     waveform, sample_rate = torchaudio.load(audio_file_path)
     diarization = diarize_audio(audio_file_path)
     if not diarization:
@@ -101,7 +153,7 @@ def transcribe_audio(audio_file_path: str, agent_task: str) -> List[CallSegment]
 
     # fix speaker names
     for call_segment in call_segments:
-        call_segment.speaker = speakers_mapping[call_segment.speaker]
+        call_segment.speaker = EntitySpeaking(speakers_mapping[call_segment.speaker.lower()])
 
     return call_segments
 
