@@ -53,7 +53,8 @@ for audio_file, test_result in tests_result.items():
         conversation_history.append({
             "speaker": call_segment.speaker.value,
             "text": call_segment.text,
-            "timestamp": call_segment.start_time
+            "start_timestamp": call_segment.start_time,
+            "end_timestamp": call_segment.end_time
         })
     
     evaluation_result = EvaluationResponse(summary="mock summary", evaluation_results=[])
@@ -69,7 +70,7 @@ for audio_file, test_result in tests_result.items():
         MetricResult(name="pauses", eval_output_type="success_flag",
                       eval_output="true" if len(test_result.pauses) == 0 else "false",
                       eval_output_success_threshold=1,
-                      reasoning=f"Had {len(test_result.pauses)} pauses.\n" + ("\n".join([f"Pause at {p.start_time:.2f}s (duration: {p.duration:.2f}s)" for p in test_result.pauses]) if test_result.pauses else ""),
+                      reasoning=f"Had {len(test_result.pauses)} pauses.\n" + ("\n".join([f"Pause at {p.start_time:.2f}s (duration: {p.duration:.2f}s). Text before pause: {p.text_before_pause}" for p in test_result.pauses]) if test_result.pauses else ""),
                       evidence="")
     )
 

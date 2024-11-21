@@ -99,8 +99,8 @@ def determine_speakers(transcription: List[CallSegment], agent_task: str) -> Dic
         raise ValueError("Please set OPENAI_API_KEY environment variable")
 
     provider = OpenAIProvider(api_key, "gpt-4o")
-    system_prompt = f'''I'm building a voice agent that calls people and businesses on my behalf. Here's a call transcript. Your role is to determine who is SPEAKER_00 and who is SPEAKER_01 by looking at the task I gave my voice agent and the transcript.
-Return a json with the following format: {{"speaker_00": "callee" | "voice_agent", "speaker_01": "callee" | "voice_agent"}}
+    system_prompt = f'''I'm building a voice agent that calls people and businesses on my behalf. Here's a call transcript. Your role is to determine who is A and who is B by looking at the task I gave my voice agent and the transcript.
+Return a json with the following format: {{"A": "callee" | "voice_agent", "B": "callee" | "voice_agent"}}
 Return None if you cannot determine who is speaking or if there are more than 2 speakers.
 DON'T RETURN ANYTHING ELSE BUT THE JSON. Format it correctly as I load it into a dictionary in python.
     
@@ -158,9 +158,39 @@ def transcribe_audio(audio_file_path: str, agent_task: str) -> List[CallSegment]
     return call_segments
 
 
+def transcribe_using_assemblyai(audio_file_path: str, agent_task: str) -> List[CallSegment]:
+    api_key = os.getenv("ASSEMBLYAI_API_KEY")
+    if not api_key:
+        raise ValueError("Please set ASSEMBLYAI_API_KEY environment variable")
+    import assemblyai as aai
+
+    aai.settings.api_key = api_key
+    transcriber = aai.Transcriber()
+    transcript = transcriber.transcribe(audio_file_path, 
+                                        config=aai.TranscriptionConfig(speaker_labels=True,
+                                                                       speakers_expected=2,
+                                                                       speech_model=aai.SpeechModel.nano,
+                                                                       disfluencies=True))
+
+    call_segments = []
+    for utt in transcript.utterances:
+        call_segments.append(CallSegment(
+            start_time=utt.start / 1000,  # Convert from ms to seconds
+            end_time=utt.end / 1000,
+            speaker=utt.speaker,
+            text=utt.text
+        ))
+    speakers_mapping = determine_speakers(call_segments, agent_task)
+
+    # fix speaker names
+    for call_segment in call_segments:
+        call_segment.speaker = EntitySpeaking(speakers_mapping[call_segment.speaker])
+
+    return call_segments
 
 def analyze_audio(audio_file_path: str, agent_task: str, print_verbose: bool = False) -> SpeechTestResult:
-    call_segments = transcribe_audio(audio_file_path, agent_task)
+    # call_segments = transcribe_audio(audio_file_path, agent_task)
+    call_segments = transcribe_using_assemblyai(audio_file_path, agent_task)
     interuptions = detect_interuptions(call_segments)
     pauses = detect_pauses(call_segments)
 
@@ -189,7 +219,7 @@ def run_tests(audio_files_dir: str, agent_task: str) -> Dict[str, SpeechTestResu
     test_number = 1
     tests_results = {}
     for audio_file in os.listdir(audio_files_dir):
-        if not audio_file.startswith("11x"):
+        if not audio_file.startswith("11x_role"):
             continue
 
         print(f"\n\n=== Running speech test {test_number} of {len(os.listdir(audio_files_dir))} with [{audio_file}] ===")
