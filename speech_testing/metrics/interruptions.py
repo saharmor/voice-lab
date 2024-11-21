@@ -2,6 +2,8 @@ from typing import List
 from llm_testing.core.data_types import EntitySpeaking
 from ..data_types import CallSegment, InterruptionData
 
+# approach one - split into two channels, then run analysis (pauses + interruptions) on each channel
+# approach two - speaker diarization on combined audio, then run analysis (pauses + intterruptions)
 
 def detect_interuptions(call_segments: List[CallSegment]) -> List[InterruptionData]:
     interruption_segments = []

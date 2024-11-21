@@ -10,7 +10,6 @@ from speech_testing.data_types import CallSegment, SpeechTestResult
 from speech_testing.metrics.interruptions import detect_interuptions
 from speech_testing.metrics.pauses import MIN_PAUSE_DURATION, detect_pauses
     
-import tempfile
 import time
 from typing import List
 from pyannote.audio import Pipeline
@@ -20,10 +19,10 @@ import torchaudio
 import stable_whisper
 
 
-def transcribe_simple(model, audio_file_path: str):
-    return model.transcribe(audio_file_path).to_dict()
+def transcribe_prescise_timestamps(model, audio_file_path: str):
+    return model.refine(audio_file_path, model.transcribe(audio_file_path, suppress_silence=False)).to_dict()
 
-def test_merge_diarization_and_transcription(diarization, transcription):
+def merge_diarization_and_transcription(diarization, transcription) -> List[CallSegment]:
     from pyannote.core import Segment
     import pandas as pd
 
@@ -47,7 +46,6 @@ def test_merge_diarization_and_transcription(diarization, transcription):
         for word_info in segment["words"]:
             word_start = word_info["start"]
             word_end = word_info["end"]
-            word_text = word_info["word"].strip()
             
             # Find the speaker for this word
             # Check which diarization segment the word falls into
@@ -60,14 +58,21 @@ def test_merge_diarization_and_transcription(diarization, transcription):
         # If no speaker is found, label as 'Unknown' or skip
         if not speaker:
             speaker = "Unknown"
+
+        segment_start = segment["start"]
+        segment_end = segment["end"]
+        segment_text = segment["text"]
+
         
         # Append to final transcriptions
-        final_transcriptions.append({
-            "speaker": speaker,
-            "start_time": word_start,
-            "end_time": word_end,
-            "text": word_text
-        })
+        final_transcriptions.append(
+            CallSegment(
+                start_time=segment_start,
+                end_time=segment_end,
+                speaker=speaker,
+                text=segment_text
+            )
+        )
 
     return final_transcriptions
 
@@ -88,8 +93,6 @@ def diarize_audio(audio_file_path: str) -> List[CallSegment]:
     end_time = time.time()
     print(f"--> ✨ Speaker diarization completed in {end_time - start_time:.2f} seconds")
     
-    model = stable_whisper.load_model('medium.en')
-    test_merge_diarization_and_transcription(diarization, transcribe_simple(model, audio_file_path))
     return diarization
 
 
@@ -99,8 +102,8 @@ def determine_speakers(transcription: List[CallSegment], agent_task: str) -> Dic
         raise ValueError("Please set OPENAI_API_KEY environment variable")
 
     provider = OpenAIProvider(api_key, "gpt-4o")
-    system_prompt = f'''I'm building a voice agent that calls people and businesses on my behalf. Here's a call transcript. Your role is to determine who is A and who is B by looking at the task I gave my voice agent and the transcript.
-Return a json with the following format: {{"A": "callee" | "voice_agent", "B": "callee" | "voice_agent"}}
+    system_prompt = f'''I'm building a voice agent that calls people and businesses on my behalf. Here's a call transcript. Your role is to determine who is SPEAKER_00 and who is SPEAKER_01 by looking at the task I gave my voice agent and the transcript.
+Return a json with the following format: {{"speaker_00": "callee" | "voice_agent", "speaker_01": "callee" | "voice_agent"}}
 Return None if you cannot determine who is speaking or if there are more than 2 speakers.
 DON'T RETURN ANYTHING ELSE BUT THE JSON. Format it correctly as I load it into a dictionary in python.
     
@@ -115,47 +118,20 @@ DON'T RETURN ANYTHING ELSE BUT THE JSON. Format it correctly as I load it into a
         raise ValueError("Could not determine speakers - invalid JSON response")
 
 def transcribe_audio(audio_file_path: str, agent_task: str) -> List[CallSegment]:#
-    call_segments = []
-    model = stable_whisper.load_model('medium.en')
-    waveform, sample_rate = torchaudio.load(audio_file_path)
     diarization = diarize_audio(audio_file_path)
     if not diarization:
         raise ValueError("No diarization results found")
+    model = stable_whisper.load_model('large-v3-turbo')
+    transcription = transcribe_prescise_timestamps(model, audio_file_path)
+    diarizated_call_segments = merge_diarization_and_transcription(diarization, transcription)
     
-    print(f"About to process {len(diarization)} segments")
-    for segment, _, speaker in diarization.itertracks(yield_label=True):
-        start_time = segment.start
-        end_time = segment.end
-
-        # Convert times to sample indices
-        start_sample = int(start_time * sample_rate)
-        end_sample = int(end_time * sample_rate)
-
-        # Extract the audio segment
-        segment_waveform = waveform[:, start_sample:end_sample]
-        
-        # use temporary file to store segment
-        transcription = ""
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file: 
-            temp_file_path = temp_file.name
-            torchaudio.save(temp_file_path, segment_waveform, sample_rate)
-            transcription = transcribe_simple(model, temp_file_path)
-
-        if transcription:
-            call_segments.append(CallSegment(
-                start_time=start_time,
-                end_time=end_time,
-                speaker=speaker,
-                text=transcription['text'].strip()
-            ))
-    
-    speakers_mapping = determine_speakers(call_segments, agent_task)
+    speakers_mapping = determine_speakers(diarizated_call_segments, agent_task)
 
     # fix speaker names
-    for call_segment in call_segments:
-        call_segment.speaker = EntitySpeaking(speakers_mapping[call_segment.speaker.lower()])
+    for call_segment in diarizated_call_segments:
+        call_segment.speaker = EntitySpeaking(speakers_mapping.get(call_segment.speaker.lower(), "unknown"))
 
-    return call_segments
+    return diarizated_call_segments
 
 
 def transcribe_using_assemblyai(audio_file_path: str, agent_task: str) -> List[CallSegment]:
@@ -189,8 +165,7 @@ def transcribe_using_assemblyai(audio_file_path: str, agent_task: str) -> List[C
     return call_segments
 
 def analyze_audio(audio_file_path: str, agent_task: str, print_verbose: bool = False) -> SpeechTestResult:
-    # call_segments = transcribe_audio(audio_file_path, agent_task)
-    call_segments = transcribe_using_assemblyai(audio_file_path, agent_task)
+    call_segments = transcribe_audio(audio_file_path, agent_task)
     interuptions = detect_interuptions(call_segments)
     pauses = detect_pauses(call_segments)
 
