@@ -151,6 +151,7 @@ You can generate test scenarios using the [Voice Lab Configuration Editor](https
 - [ ] Integrate [Tencent's 1B Personas](https://huggingface.co/datasets/proj-persona/PersonaHub) for more detailed and complex scenarios
 - [ ] Use Microsoft's new [TinyTroupe](https://github.com/microsoft/TinyTroupe) for more extensive simulations
 - [ ] Batch processing for lower cost (50% off)
+- [ ] Suggest fine-tuned models for better adherence/style/etc. evaluation (e.g., defining what is concise vs. length)
 - [ ] Improve test framework
   - [ ] Create a DB of agents and personas, each with additional context (e.g. address) according to scenarios (e.g. airline, commerce)
   - [ ] Add parallel test execution
