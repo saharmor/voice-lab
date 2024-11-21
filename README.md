@@ -159,3 +159,6 @@ You can generate test scenarios using the [Voice Lab Configuration Editor](https
   - [ ] Add conversation replay capability
 - [ ] Generated test report
   - [ ] Add the eval_metrics.json and test_scenarios that were used for the test run
+
+# Attribution
+If you use this project, please provide attribution by linking back to this repository: [https://github.com/saharmor/voice-lab](https://github.com/saharmor/voice-lab).
