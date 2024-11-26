@@ -101,7 +101,7 @@ def determine_speakers(transcription: List[CallSegment], agent_task: str) -> Dic
     if not api_key:
         raise ValueError("Please set OPENAI_API_KEY environment variable")
 
-    provider = OpenAIProvider(api_key, "gpt-4o")
+    provider = OpenAIProvider(api_key, "gpt-4o-mini")
     system_prompt = f'''I'm building a voice agent that calls people and businesses on my behalf. Here's a call transcript. Your role is to determine who is SPEAKER_00 and who is SPEAKER_01 by looking at the task I gave my voice agent and the transcript.
 Return a json with the following format: {{"speaker_00": "callee" | "voice_agent", "speaker_01": "callee" | "voice_agent"}}
 Return None if you cannot determine who is speaking or if there are more than 2 speakers.
@@ -194,7 +194,7 @@ def run_tests(audio_files_dir: str, agent_task: str) -> Dict[str, SpeechTestResu
     test_number = 1
     tests_results = {}
     for audio_file in os.listdir(audio_files_dir):
-        if not audio_file.startswith("11x_role"):
+        if not audio_file.startswith("11x_outbound"):
             continue
 
         print(f"\n\n=== Running speech test {test_number} of {len(os.listdir(audio_files_dir))} with [{audio_file}] ===")
