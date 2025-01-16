@@ -38,5 +38,4 @@ def run_tests():
         cleanup_event.set()
 
 
-
 run_tests()

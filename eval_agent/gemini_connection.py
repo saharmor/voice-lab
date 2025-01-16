@@ -31,7 +31,6 @@ class GeminiConnection:
         )
         self.ws = None
         self.vad = VoiceActivityDetector()
-        self.equalizer = None
 
         # Audio settings
         self.FORMAT = pyaudio.paInt16
@@ -49,8 +48,6 @@ class GeminiConnection:
         self.on_connect = on_connect
         self.allow_interruptions = config.get("allow_interruptions", False)
 
-    def set_equalizer(self, equalizer):
-        self.equalizer = equalizer
 
     async def cleanup(self):
         """Clean up resources when stopping."""
@@ -132,10 +129,6 @@ class GeminiConnection:
             while self.running:
                 try:
                     data = await asyncio.to_thread(stream.read, self.CHUNK, exception_on_overflow=False)
-                    
-                    # Update equalizer with audio data
-                    if self.equalizer:
-                        self.equalizer.update_levels(data)
                     
                     # Check if we should process input based on interruption settings
                     should_process = (not self.is_playing) or (self.is_playing and self.allow_interruptions)
