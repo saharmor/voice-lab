@@ -9,7 +9,7 @@ class VoiceActivityDetector:
                                      force_reload=False)
         self.model.eval()
 
-    def is_speech(self, audio_data: bytes) -> bool:
+    def is_speech(self, audio_data: bytes, threshold: float = 0.5) -> bool:
         # Convert raw bytes directly to numpy array of int16
         audio_np = np.frombuffer(audio_data, dtype=np.int16)
         
@@ -21,4 +21,4 @@ class VoiceActivityDetector:
         
         # Get speech probability
         speech_prob = self.model(audio_tensor, 16000).item()
-        return speech_prob > 0.5  # Adjust threshold as needed
+        return speech_prob > threshold  # Adjust threshold as needed
