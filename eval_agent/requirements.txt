@@ -1,0 +1,7 @@
+websockets
+python-dotenv==1.0.0
+pyaudio==0.2.14
+google-genai==0.2.2
+numpy
+torch
+torchaudio
