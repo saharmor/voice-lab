@@ -19,7 +19,7 @@ def run_tests():
         "system_prompt": "You are a friendly Gemini 2.0 model. Respond verbally in a casual, helpful tone.",
         "voice": "Puck",
         "google_search": False,
-        "allow_interruptions": True
+        "allow_interruptions": False
     }
     
     # Create cleanup event for graceful shutdown

@@ -139,7 +139,6 @@ class GeminiConnection:
                                 print("No speech detected")
                                 self._printed_no_speech = True
                             data = b'\x00' * len(data)
-                            continue # TODO remove this?
                         else:
                             self._printed_no_speech = False
                         
