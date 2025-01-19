@@ -143,6 +143,10 @@ You can generate test scenarios using the [Voice Lab Configuration Editor](https
        }
    }
    ```
+
+## Standalone eval agent
+Coming soon
+
 # Contribution ideas
 - [x] Support providing agents with additional context via json, e.g. credit card details, price range, etc.
 - [x] Dynamic metrics for json (e.g. `metrics.json`)
