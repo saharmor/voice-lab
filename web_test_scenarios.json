@@ -1,0 +1,32 @@
+{
+    "test_scenarios": [
+      {
+        "scenario_id": "yearly_billing_confusion",
+        "chatbot_url": "https://substack.com/support",
+        "agent_system_prompt": "You are a customer service agent for Substack. You are doing your best to resolve users' issues as smoothly as possible.",
+        "guidelines": "billing_notion.md",
+        "successful_outcome": "The agent has successfully resolved this issue if they: (1) explained that removed seats remain available until the end of the billing year, (2) clearly broke down how prorated charges work for mid-year additions, showing why there are extra charges, (3) guided the user to the billing settings where they can view detailed invoice information, and (4) explained that these paid seats can still be used for new team members until the renewal date. The user should demonstrate understanding of these concepts in their responses and stop expressing confusion about the charges.",
+        "user_persona": {
+          "profession": "Project Manager at a marketing agency",
+          "emotional_state": "confused and mildly frustrated",
+          "chat_style": "detail-oriented, asks for clarification, uses professional language but occasionally shows frustration through punctuation",
+          "context": "Managing a team with fluctuating contractor count, needs to understand billing",
+          "initial_message": "I'm looking at our yearly bill and I'm completely lost. We added 3 contractors in March and removed them in May, but the charges don't make sense. We're still being charged for them and there's some extra prorated amount? Can someone explain what's going on?",
+        }
+      },
+      {
+        "scenario_id": "refund_request",
+        "chatbot_url": "https://substack.com/support",
+        "agent_system_prompt": "You are a customer service agent for Substack. You are doing your best to resolve users' issues as smoothly as possible.",
+        "guidelines": "billing_notion.md",
+        "successful_outcome": "The agent has successfully resolved this issue if they: (1) confirmed the request falls within Notion's 30-day refund window for yearly subscriptions, (2) initiated the refund process by collecting necessary information, (3) explained how to switch to monthly billing and assured that workspace access will be maintained during the transition, and (4) provided clear expectations about the refund timeline. The user should have stopped expressing urgency and anxiety about the charges and demonstrated confidence that their issue is being handled appropriately.",
+        "user_persona": {
+          "profession": "Startup founder",
+          "emotional_state": "urgent and anxious about finances",
+          "chat_style": "direct, uses short sentences, emphasizes urgency through capitalization and timing-related words",
+          "context": "Accidentally purchased wrong plan, needs immediate resolution",
+          "initial_message": "I need an urgent refund. I signed up for a yearly Business plan yesterday but meant to choose monthly. This is a big charge for our startup and I need it reversed ASAP. How quickly can you help?",
+        }
+      }
+    ]
+  }
