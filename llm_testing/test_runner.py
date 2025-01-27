@@ -1,11 +1,11 @@
 import json
 from typing import List, Dict, Any, Optional
 
-from .core.data_types import ConversationContext, ConversationEvaluation, EntitySpeaking, LLMResponse, TestResult
-from .core.agent_config import AgentTaskConfig
-from .core.interfaces import LLMInterface
-from .core.personas import CalleePersona
-from .core.evaluator import ConversationEvaluator
+from core.data_types import ConversationContext, ConversationEvaluation, EntitySpeaking, LLMResponse, TestResult
+from core.agent_config import AgentTaskConfig
+from core.interfaces import LLMInterface
+from core.personas import CalleePersona
+from core.evaluator import ConversationEvaluator
 
 
 class GoalBasedTestRunner:

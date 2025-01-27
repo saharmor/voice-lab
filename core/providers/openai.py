@@ -1,8 +1,8 @@
 from typing import Any, Dict, List, Optional
 import openai
 from pydantic import BaseModel
-from ..core.interfaces import LLMInterface
-from ..core.data_types import ConversationContext, EntitySpeaking, LLMResponse
+from ..interfaces import LLMInterface
+from ..data_types import ConversationContext, EntitySpeaking, LLMResponse
 
 
 class OpenAIProvider(LLMInterface):
