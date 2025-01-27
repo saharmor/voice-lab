@@ -17,7 +17,7 @@
         "timestamp": "2024-01-27T10:00:00Z"
       },
       {
-        "role": "assistant",
+        "role": "agent",
         "content": "I understand your concern about the fraudulent charge. I'll help you with this right away. Could you please provide the email address associated with the subscription?",
         "timestamp": "2024-01-27T10:00:05Z"
       },
@@ -27,7 +27,7 @@
         "timestamp": "2024-01-27T10:00:20Z"
       },
       {
-        "role": "assistant",
+        "role": "agent",
         "content": "I'm looking up your subscription now with that email address. To protect your security, could you confirm the last 4 digits of the card that was charged?",
         "timestamp": "2024-01-27T10:00:25Z"
       },
@@ -37,7 +37,7 @@
         "timestamp": "2024-01-27T10:00:40Z"
       },
       {
-        "role": "assistant",
+        "role": "agent",
         "content": "I've located your subscription and I'm canceling it immediately. I'm also initiating a refund for the charge of $49.99 to your card ending in 4891. The refund should appear in 3-5 business days. Would you like me to send you an email confirmation of these actions?",
         "timestamp": "2024-01-27T10:00:45Z"
       },
@@ -47,7 +47,7 @@
         "timestamp": "2024-01-27T10:01:00Z"
       },
       {
-        "role": "assistant",
+        "role": "agent",
         "content": "I've sent the confirmation email to sahar@aitidbits.com. Your subscription is cancelled and the refund has been processed. I understand your frustration with the refund timeline - unfortunately, this is due to standard bank processing times. If you need any further assistance, please don't hesitate to reach out.",
         "timestamp": "2024-01-27T10:01:05Z"
       }
