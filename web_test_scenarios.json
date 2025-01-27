@@ -1,32 +1,116 @@
 {
-    "test_scenarios": [
-      {
-        "scenario_id": "yearly_billing_confusion",
-        "chatbot_url": "https://substack.com/support",
-        "agent_system_prompt": "You are a customer service agent for Substack. You are doing your best to resolve users' issues as smoothly as possible.",
-        "guidelines": "billing_notion.md",
-        "successful_outcome": "The agent has successfully resolved this issue if they: (1) explained that removed seats remain available until the end of the billing year, (2) clearly broke down how prorated charges work for mid-year additions, showing why there are extra charges, (3) guided the user to the billing settings where they can view detailed invoice information, and (4) explained that these paid seats can still be used for new team members until the renewal date. The user should demonstrate understanding of these concepts in their responses and stop expressing confusion about the charges.",
-        "user_persona": {
-          "profession": "Project Manager at a marketing agency",
-          "emotional_state": "confused and mildly frustrated",
-          "chat_style": "detail-oriented, asks for clarification, uses professional language but occasionally shows frustration through punctuation",
-          "context": "Managing a team with fluctuating contractor count, needs to understand billing",
-          "initial_message": "I'm looking at our yearly bill and I'm completely lost. We added 3 contractors in March and removed them in May, but the charges don't make sense. We're still being charged for them and there's some extra prorated amount? Can someone explain what's going on?",
-        }
+  "test_scenarios": [
+    {
+      "scenario_id": "yearly_billing_confusion",
+      "chatbot_url": "https://substack.com/support",
+      "agent_system_prompt": "You are a customer service agent for Substack. You are doing your best to resolve users' issues as smoothly as possible.",
+      "guidelines": "billing_notion.md",
+      "successful_outcome": "The agent has successfully resolved this issue if they: (1) explained that removed seats remain available until the end of the billing year, (2) clearly broke down how prorated charges work for mid-year additions, showing why there are extra charges, (3) guided the user to the billing settings where they can view detailed invoice information, and (4) explained that these paid seats can still be used for new team members until the renewal date. The user should demonstrate understanding of these concepts in their responses and stop expressing confusion about the charges.",
+      "user_persona": {
+        "profession": "Project Manager at a marketing agency",
+        "emotional_state": "confused and mildly frustrated",
+        "chat_style": "detail-oriented, asks for clarification, uses professional language but occasionally shows frustration through punctuation",
+        "context": "Managing a team with fluctuating contractor count, needs to understand billing",
+        "initial_message": "I'm looking at our yearly bill and I'm completely lost. We added 3 contractors in March and removed them in May, but the charges don't make sense. We're still being charged for them and there's some extra prorated amount? Can someone explain what's going on?"
       },
-      {
-        "scenario_id": "refund_request",
-        "chatbot_url": "https://substack.com/support",
-        "agent_system_prompt": "You are a customer service agent for Substack. You are doing your best to resolve users' issues as smoothly as possible.",
-        "guidelines": "billing_notion.md",
-        "successful_outcome": "The agent has successfully resolved this issue if they: (1) confirmed the request falls within Notion's 30-day refund window for yearly subscriptions, (2) initiated the refund process by collecting necessary information, (3) explained how to switch to monthly billing and assured that workspace access will be maintained during the transition, and (4) provided clear expectations about the refund timeline. The user should have stopped expressing urgency and anxiety about the charges and demonstrated confidence that their issue is being handled appropriately.",
-        "user_persona": {
-          "profession": "Startup founder",
-          "emotional_state": "urgent and anxious about finances",
-          "chat_style": "direct, uses short sentences, emphasizes urgency through capitalization and timing-related words",
-          "context": "Accidentally purchased wrong plan, needs immediate resolution",
-          "initial_message": "I need an urgent refund. I signed up for a yearly Business plan yesterday but meant to choose monthly. This is a big charge for our startup and I need it reversed ASAP. How quickly can you help?",
+      "mock_messages": [
+        {
+          "role": "user",
+          "content": "I'm looking at our yearly bill and I'm completely lost. We added 3 contractors in March and removed them in May, but the charges don't make sense. We're still being charged for them and there's some extra prorated amount? Can someone explain what's going on?",
+          "timestamp": "2024-01-27T14:00:00Z"
+        },
+        {
+          "role": "agent",
+          "content": "I understand your confusion about the billing. Let me explain how our yearly billing works with team member changes. First, could you tell me when your billing year started? This will help me break down the charges more accurately.",
+          "timestamp": "2024-01-27T14:00:05Z"
+        },
+        {
+          "role": "user",
+          "content": "Our billing year started in January. But I don't understand - if we removed the contractors in May, why are we still seeing charges for them? And what's this prorated amount showing up?",
+          "timestamp": "2024-01-27T14:00:25Z"
+        },
+        {
+          "role": "agent",
+          "content": "Let me clarify both points. When you pay yearly, seats remain available until the end of the billing year (December in your case), even if removed. For the prorated amount - when you added 3 seats in March, we charged a prorated fee to cover March-December (10 months instead of 12). Would you like me to show you the exact calculation?",
+          "timestamp": "2024-01-27T14:00:35Z"
+        },
+        {
+          "role": "user",
+          "content": "Yes, please break down the calculation. And are you saying we can still use these seats for other contractors until December? I'm not sure I'm following... ?",
+          "timestamp": "2024-01-27T14:00:55Z"
+        },
+        {
+          "role": "agent",
+          "content": "Yes, exactly! You can still assign these paid seats to any new team members until December. Let me break down the charges: For 3 seats added in March, you were charged (Annual seat price × 3 seats × 10/12 months). You can view the detailed breakdown in your billing settings under 'Invoice History'. Would you like me to guide you to where you can find this?",
+          "timestamp": "2024-01-27T14:01:05Z"
+        },
+        {
+          "role": "user",
+          "content": "Oh, that actually makes more sense now. Yes, please show me where to find the invoice history - I should probably keep track of this better going forward.",
+          "timestamp": "2024-01-27T14:01:25Z"
+        },
+        {
+          "role": "agent",
+          "content": "I'm glad it's clearer now! To view your invoice history, go to Settings > Billing > Invoice History. Each invoice shows a detailed breakdown of regular and prorated charges. And remember, those 3 seats are still available until December - you can add and remove team members as needed without additional charges.",
+          "timestamp": "2024-01-27T14:01:35Z"
         }
-      }
-    ]
-  }
+      ]
+    },
+    {
+      "scenario_id": "refund_request",
+      "chatbot_url": "https://substack.com/support",
+      "agent_system_prompt": "You are a customer service agent for Substack. You are doing your best to resolve users' issues as smoothly as possible.",
+      "guidelines": "billing_notion.md",
+      "successful_outcome": "The agent has successfully resolved this issue if they: (1) confirmed the request falls within Notion's 30-day refund window for yearly subscriptions, (2) initiated the refund process by collecting necessary information, (3) explained how to switch to monthly billing and assured that workspace access will be maintained during the transition, and (4) provided clear expectations about the refund timeline. The user should have stopped expressing urgency and anxiety about the charges and demonstrated confidence that their issue is being handled appropriately.",
+      "user_persona": {
+        "profession": "Startup founder",
+        "emotional_state": "urgent and anxious about finances",
+        "chat_style": "direct, uses short sentences, emphasizes urgency through capitalization and timing-related words",
+        "context": "Accidentally purchased wrong plan, needs immediate resolution",
+        "initial_message": "I need an urgent refund. I signed up for a yearly Business plan yesterday but meant to choose monthly. This is a big charge for our startup and I need it reversed ASAP. How quickly can you help?"
+      },
+      "mock_messages": [
+        {
+          "role": "user",
+          "content": "I need an urgent refund. I signed up for a yearly Business plan yesterday but meant to choose monthly. This is a big charge for our startup and I need it reversed ASAP. How quickly can you help?",
+          "timestamp": "2024-01-27T15:00:00Z"
+        },
+        {
+          "role": "agent",
+          "content": "I'll help you with this right away since you signed up yesterday. This falls within our 30-day refund window. Could you please confirm the email address associated with your account so I can locate your subscription?",
+          "timestamp": "2024-01-27T15:00:05Z"
+        },
+        {
+          "role": "user",
+          "content": "Yes it's startup@example.com - please process this quickly. When will I get the refund? And can I switch to monthly right after?",
+          "timestamp": "2024-01-27T15:00:20Z"
+        },
+        {
+          "role": "agent",
+          "content": "I've located your account. I can process the refund immediately, and it should appear in your account within 5-7 business days. Would you like me to help switch you to the monthly Business plan right now? Your workspace access won't be interrupted during this change.",
+          "timestamp": "2024-01-27T15:00:30Z"
+        },
+        {
+          "role": "user",
+          "content": "5-7 days? That's quite long... But yes, please switch me to monthly. Will I need to pay for that right away or after the refund?",
+          "timestamp": "2024-01-27T15:00:45Z"
+        },
+        {
+          "role": "agent",
+          "content": "I understand your concern about the timeline - it's unfortunately due to bank processing times. I can switch you to monthly billing now, and your first monthly charge won't occur until after the refund is processed. I'm initiating the refund now for $X. Would you like me to send you an email confirmation with all these details?",
+          "timestamp": "2024-01-27T15:00:55Z"
+        },
+        {
+          "role": "user",
+          "content": "Yes, please send the confirmation email. And just to be clear - our workspace stays active during all of this?",
+          "timestamp": "2024-01-27T15:01:10Z"
+        },
+        {
+          "role": "agent",
+          "content": "Yes, absolutely - your workspace will remain fully active throughout this process. I've just sent the confirmation email with the refund details and timeline. Your plan will switch to monthly billing once the refund processes, and you'll receive another email confirmation then. Is there anything else you need clarity on?",
+          "timestamp": "2024-01-27T15:01:20Z"
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,5 @@
-from llm_testing.core.data_types import EvaluationResponse, MetricResult, TestResult
-from llm_testing.utils.generate_report import generate_test_results_report
+from core.data_types import EvaluationResponse, MetricResult, TestResult
+from core.utils.generate_report import generate_test_results_report
 from speech_testing.run_tests import run_tests as run_speech_tests
 
 from dotenv import load_dotenv

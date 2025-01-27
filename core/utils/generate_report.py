@@ -1,4 +1,4 @@
-from ..core.data_types import EntitySpeaking, TestResult
+from ..data_types import EntitySpeaking, TestResult
 import os
 import webbrowser
 from datetime import datetime
