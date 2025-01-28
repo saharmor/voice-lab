@@ -4,3 +4,4 @@ numpy
 torchaudio
 pyannote.audio
 stable-ts
+pyppeteer

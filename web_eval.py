@@ -1,43 +1,34 @@
+import asyncio
+from datetime import datetime
 import json
 import os
+import time
 
+from pyppeteer import launch
+
+from core.data_types import TestResult
+from core.evaluator import LLMConversationEvaluator
+from core.personas import CalleePersona, Mood
 from core.providers.openai import OpenAIProvider
+from core.utils.generate_report import generate_test_results_report
+
+CHATBOT_REPLY_TIMEOUT_SEC = 60
 
 
-url = "https://substack.com/support"
-
-#TODO remove once connected to browser automation
-agent_system_prompt = "You are a customer service agent for Substack. You are doing your best to resolve users' issues as smoothly as possible."
-
-persona = "My name is Sahar. I run a substack called AI Tidbits. I am an angry person who is impatient when it comes to customer service."
-system_prompt = f'''You are my virtual assistant who contacts customer support on my behalf. About me: {persona}
-Generate your next response for the following conversation so I can send it to the customer support agent.
-'''
-scenario = "Remove a paid subscription I suspect is fraudulent"
-
-def read_mock_web_conv(user_turns=3):
-    with open("mock_web_conv.json", "r") as f:
-        mock_web_conv = json.load(f)
-    
-    # return the list of message until the user_turns message
+def read_mock_web_conv(scenario, user_turns=3):
     messages = []
-    for msg in mock_web_conv["messages"]:
+    for msg in scenario["mock_messages"]:
         if msg["role"] == "user":
             user_turns -= 1
         if user_turns == 0:
             break
         messages.append(msg)
-    
+
     return messages
 
 
 
-def print_conversation_history(conversation_history):
-    for msg in conversation_history:
-        print(f"{msg['role']}: {msg['content']}")
-
-def mock_read_agent_response(messages_thus_far):
-    issue_resolved_tool = {
+issue_resolved_tool = {
     "type": "function",
     "function": {
         "name": "user_issue_resolved",
@@ -49,26 +40,28 @@ def mock_read_agent_response(messages_thus_far):
                     "type": "boolean",
                     "description": "Whether ALL requested actions are complete AND user has confirmed satisfaction"
                 },
-                "satisfaction_score": {
-                    "type": "number",
-                    "description": "User satisfaction score (1-5), based on explicit positive confirmation from user. Default to null if unclear.",
-                    "minimum": 1,
-                    "maximum": 5
-                },
                 "confirmation_type": {
                     "type": "string",
                     "enum": ["explicit", "implicit", "none"],
                     "description": "How the user confirmed resolution: 'explicit' (clear confirmation), 'implicit' (positive but indirect), or 'none' (pending)"
                 }
             },
-                "required": ["satisfaction_score", "issue_resolved", "confirmation_type"]
-            }
+            "required": ["issue_resolved", "confirmation_type"]
         }
     }
+}
 
-    return agent_llm.plain_call(agent_system_prompt,
-                                    messages_thus_far,
-                                    [issue_resolved_tool])
+
+def read_test_scenarios():
+    with open("web_test_scenarios.json", "r") as f:
+        test_scenarios = json.load(f)
+    return test_scenarios["test_scenarios"]
+
+
+def print_conversation_history(conversation_history):
+    for msg in conversation_history:
+        print(f"{msg['role']}: {msg['content']}\n")
+
 
 def convert_conv_history_to_openai_format(conversation_history, assistant_role):
     msgs = []
@@ -85,35 +78,223 @@ def convert_conv_history_to_openai_format(conversation_history, assistant_role):
                 msgs.append({"role": 'user', "content": msg["content"]})
     return msgs
 
+
+def eval_test_scenario(scenario, conversation_history):
+    eval_llm = OpenAIProvider(api_key, "gpt-4o")
+    evaluator = LLMConversationEvaluator(eval_llm, "eval_metrics.json",
+                                         f"You are an objective conversational AI chatbot evaluator who evalutes customer support AI chatbots that text with customers. You will be provided a chat transcript and score it across the different provided metrics.")
+
+    success_criteria = scenario["successful_outcome"]
+    with open(scenario["guidelines"], 'r') as f:
+        scenario_guidelines = f.read()
+
+    conversation_history_str = ""
+    for msg in conversation_history:
+        conversation_history_str += f"{msg['role']}: {msg['content']}\n"
+
+#     eval_prompt = f"""You are an objective conversational AI chatbot evaluator who evalutes customer support AI chatbots that text with customers. You will be provided a chat transcript and score it across the different provided metrics.
+# Evaluate the following conversation according to Notion's customer support guidelines (attached below) and provide a score according to the scoring format and an explanation of your evaluation for each metric.
+# success_flag is a boolean value that indicates whether the metric was achieved. range_score is a number between 0 and 10 that indicates the degree to which the metric was achieved.
+
+# # Metrics
+# {evaluator._generate_metrics_prompt()}
+
+# # Success criteria
+# {success_criteria}
+
+# # Guidelines
+# {scenario_guidelines}
+
+# # Conversation
+# {conversation_history_str}
+# """
+
+    user_persona = CalleePersona(
+        name="User",
+        description=scenario["user_persona"]["context"],
+        role=scenario["user_persona"]["profession"],
+        traits=[],  # Not provided in user_persona
+        mood=Mood.IMPATIENT,  # Not provided in user_persona
+        initial_message=scenario["user_persona"]["initial_message"],
+        response_style=None,  # Not provided in user_persona
+        additional_context={
+            "chat_style": scenario["user_persona"]["chat_style"],
+            "emotional_state": scenario["user_persona"]["emotional_state"]
+        },
+    )
+
+    result = TestResult(
+        evaluation_result=evaluator.evaluate(
+            conversation_history,
+            None,
+            user_persona,
+            success_criteria,
+            scenario_guidelines
+        ),
+        conversation_history=conversation_history
+    )
+
+    generate_test_results_report(result)
+    return result
+
+
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError("Please set OPENAI_API_KEY environment variable")
 
-conversation_history = read_mock_web_conv()
-print_conversation_history(conversation_history)
-
 agent_llm = OpenAIProvider(api_key, "gpt-4o")
 
-issue_resolved = False
-while not issue_resolved: 
-    user_response = agent_llm.plain_call(system_prompt, convert_conv_history_to_openai_format(conversation_history, "user"))
-    print("user: ", user_response.response_content)
-    conversation_history.append({"role": "user", "content": user_response.response_content})
-    
-    agent_response = mock_read_agent_response(convert_conv_history_to_openai_format(conversation_history, "agent"))
-    print("assistant: ", agent_response.response_content)
-    conversation_history.append({"role": "agent", "content": agent_response.response_content})
 
-    if agent_response.tools_called:
-        tool_call = agent_response.tools_called[0]
-        if tool_call.function.name == "user_issue_resolved":
-            func_args = json.loads(tool_call.function.arguments)
-            issue_resolved = func_args["issue_resolved"]
-            if issue_resolved:
-                issue_resolved = True
-                satisfaction_score = func_args["satisfaction_score"]
-                print(f"User's issue has been resolved with a satisfaction score of {satisfaction_score}")
+async def run_tests():
+    for scenario in read_test_scenarios():
+        user_persona = json.dumps(
+            {k: v for k, v in scenario["user_persona"].items() if k != "initial_message"})
+        issue_resolved = False
+        system_prompt = f"""You are my virtual assistant who contacts customer support on my behalf. About me: {user_persona}
+
+Generate your next response for the following conversation so I can send it to the customer support agent.
+"""
+        conversation_history = []
+
+        browser = await launch(headless=False)
+        page = await browser.newPage()
+
+        msg_input_selector = 'textarea[placeholder="Ask a detailed question..."]'
+        try:
+            # Navigate to the chatbot
+            await page.goto(scenario["chatbot_url"])
+
+            # wait for the page to load
+            await asyncio.sleep(5)
+
+            # Wait for the chat interface to load
+            await page.waitForSelector(msg_input_selector)
+
+            result = await send_and_measure(page,
+                                            scenario["user_persona"]["initial_message"]
+                                            # , typing_delay=35
+                                            )
+            
+            if not result['response']:
+                raise ValueError(f"Agent response not found for initial message (probably a selector issue)")
+            
+            # TODO REMOVE
+            print(f"Response: {result['response']}")
+            print(f"Latency: {result['latency']:.2f} seconds")
+
+            conversation_history.append(
+                {"role": "user", "content": scenario["user_persona"]["initial_message"]})
+            for msg in result['response']:
+                conversation_history.append({"role": "agent", "content": msg})
+
+            while not issue_resolved:
+                user_response = agent_llm.plain_call(system_prompt,
+                                                      convert_conv_history_to_openai_format(conversation_history, "user"),
+                                                      [issue_resolved_tool]
+                                                      )
+                
+                if user_response.tools_called and user_response.tools_called[0].function.name == "user_issue_resolved":
+                    arguments = json.loads(user_response.tools_called[0].function.arguments)
+                    issue_resolved = arguments["issue_resolved"]
+                    if issue_resolved:
+                        issue_resolved = True
+                        print("User's issue has been resolved")
+                        break
+
+                print("user: ", user_response.response_content)
+                conversation_history.append({"role": "user", "content": user_response.response_content})
+
+                # Send user generated text and then read the agent's response
+                result = await send_and_measure(page, user_response.response_content
+                                                # , typing_delay=35
+                                                )
+                
+                # TODO make this work :)
+                await asyncio.sleep(3)
+                
+                agent_response = result['response']
+                if not agent_response:
+                    raise ValueError(f"Agent response not found for user message (probably a selector issue)")
+                
+                print("assistant: ", agent_response)
+                for msg in agent_response:
+                    conversation_history.append({"role": "agent", "content": msg})
+
+                # TODO REMOVE
+                print(f"Response: {agent_response}")
+                print(f"Latency: {result['latency']:.2f} seconds")
+
+            # evaluate the scenario
+            # TODO ADD LATENCY eval
+            eval_response = eval_test_scenario(scenario, conversation_history)
+            print(f"Evaluation result: {eval_response.evaluation_result}")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+        finally:
+            await browser.close()
 
 
+async def send_and_measure(page, message, typing_delay=0):
+    msg_input_selector = 'textarea[placeholder="Ask a detailed question..."]'
+
+    # Clear input if needed
+    await page.evaluate(f'''() => {{document.querySelector('{msg_input_selector}').value = '';}}''')
+
+    # Convert newlines to shift+enter equivalent to keep message as single input
+    message = message.replace('\n', '\r')
+    await page.type(msg_input_selector, message, {'delay': typing_delay})
+    await page.keyboard.press('Enter')
+    start_time = time.time()
+
+    # Wait for response to appear and chatbot to finish typing and wait for spinner to disappear
+    # TODO spinner can sometimes disappear and reappear as the agent is thinking. Wait for a few second to (a) check if there are new messages (i.e. multiple) or (b) agent is still thinking
+    await page.waitForSelector('.spinner', {'timeout': 15000})
+    await page.waitForFunction(
+        '!document.querySelector(".spinner")',
+        {'timeout': CHATBOT_REPLY_TIMEOUT_SEC * 1000}
+    )
+
+    end_time = time.time()
+
+    # Get the agent's latest response
+    response = await page.evaluate('''() => {
+        const messages = document.querySelectorAll('.widget-chat-bubble');
+        const agentMessages = [];
+        let lastUserMessage = -1;
+        
+        // First find index of last user message
+        for (let i = 0; i < messages.length; i++) {
+            if (!messages[i].classList.contains('bg-slate-200')) {
+                lastUserMessage = i;
+            }
+        }
+        
+        // Get agent messages after last user message
+        for (let i = lastUserMessage + 1; i < messages.length; i++) {
+            if (messages[i].classList.contains('bg-slate-200')) {
+                const textElement = messages[i].querySelector('.widget-chat-bubble-text');
+                if (textElement) {
+                    agentMessages.push(textElement.innerText);
+                }
+            }
+        }
+        
+        return agentMessages.length > 0 ? agentMessages : 'No response found';
+    }''')
 
 
+    return {
+        'response': response if response != "No response found" else None,
+        'latency': end_time - start_time,
+        'timestamp': datetime.now().isoformat()
+    }
+
+
+async def main():
+    await run_tests()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nExiting gracefully...")

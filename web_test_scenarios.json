@@ -1,64 +1,64 @@
 {
   "test_scenarios": [
     {
-      "scenario_id": "yearly_billing_confusion",
-      "chatbot_url": "https://substack.com/support",
+      "scenario_id": "refund_policy_question",
+      "chatbot_url": "https://decagon.ai/embed/notion",
       "agent_system_prompt": "You are a customer service agent for Substack. You are doing your best to resolve users' issues as smoothly as possible.",
-      "guidelines": "billing_notion.md",
-      "successful_outcome": "The agent has successfully resolved this issue if they: (1) explained that removed seats remain available until the end of the billing year, (2) clearly broke down how prorated charges work for mid-year additions, showing why there are extra charges, (3) guided the user to the billing settings where they can view detailed invoice information, and (4) explained that these paid seats can still be used for new team members until the renewal date. The user should demonstrate understanding of these concepts in their responses and stop expressing confusion about the charges.",
+      "guidelines": "billing_notion.md", 
+      "successful_outcome": "The agent has successfully resolved this issue if they: (1) clearly explained Substack's refund policy for paid publications, (2) helped the user understand what options are available to them based on their specific subscription timing, (3) provided clear next steps if a refund is possible, and (4) explained how to manage subscription settings to prevent unwanted renewals. The user should demonstrate understanding of the refund policy and express satisfaction with the explanation.",
       "user_persona": {
-        "profession": "Project Manager at a marketing agency",
-        "emotional_state": "confused and mildly frustrated",
-        "chat_style": "detail-oriented, asks for clarification, uses professional language but occasionally shows frustration through punctuation",
-        "context": "Managing a team with fluctuating contractor count, needs to understand billing",
-        "initial_message": "I'm looking at our yearly bill and I'm completely lost. We added 3 contractors in March and removed them in May, but the charges don't make sense. We're still being charged for them and there's some extra prorated amount? Can someone explain what's going on?"
+        "profession": "Reader",
+        "emotional_state": "curious but slightly concerned",
+        "chat_style": "polite, straightforward questions, seeks clear information",
+        "context": "Recently subscribed to a paid publication and wants to understand refund options",
+        "initial_message": "Hi, I just subscribed to a paid newsletter yesterday and I'm wondering - what's your refund policy? Is it possible to get my money back if I change my mind?"
       },
       "mock_messages": [
         {
           "role": "user",
-          "content": "I'm looking at our yearly bill and I'm completely lost. We added 3 contractors in March and removed them in May, but the charges don't make sense. We're still being charged for them and there's some extra prorated amount? Can someone explain what's going on?",
+          "content": "Hi, I just subscribed to a paid newsletter yesterday and I'm wondering - what's your refund policy? Is it possible to get my money back if I change my mind?",
           "timestamp": "2024-01-27T14:00:00Z"
         },
         {
           "role": "agent",
-          "content": "I understand your confusion about the billing. Let me explain how our yearly billing works with team member changes. First, could you tell me when your billing year started? This will help me break down the charges more accurately.",
+          "content": "I'd be happy to explain our refund policy. Could you first let me know which publication you subscribed to and whether it's a monthly or annual subscription? This will help me give you the most accurate information.",
           "timestamp": "2024-01-27T14:00:05Z"
         },
         {
           "role": "user",
-          "content": "Our billing year started in January. But I don't understand - if we removed the contractors in May, why are we still seeing charges for them? And what's this prorated amount showing up?",
+          "content": "It's The Daily Tech, and I chose the annual subscription. I just want to understand my options before I decide if I want to keep it.",
           "timestamp": "2024-01-27T14:00:25Z"
         },
         {
           "role": "agent",
-          "content": "Let me clarify both points. When you pay yearly, seats remain available until the end of the billing year (December in your case), even if removed. For the prorated amount - when you added 3 seats in March, we charged a prorated fee to cover March-December (10 months instead of 12). Would you like me to show you the exact calculation?",
+          "content": "Thanks for that information. Since you subscribed yesterday, you're well within our 30-day refund window for annual subscriptions. Would you like me to explain the refund process, or would you prefer to explore the publication a bit more first?",
           "timestamp": "2024-01-27T14:00:35Z"
         },
         {
           "role": "user",
-          "content": "Yes, please break down the calculation. And are you saying we can still use these seats for other contractors until December? I'm not sure I'm following... ?",
+          "content": "Could you explain both the refund process and what happens if I decide to keep it? Also, will I still have access to the content while I decide?",
           "timestamp": "2024-01-27T14:00:55Z"
         },
         {
           "role": "agent",
-          "content": "Yes, exactly! You can still assign these paid seats to any new team members until December. Let me break down the charges: For 3 seats added in March, you were charged (Annual seat price × 3 seats × 10/12 months). You can view the detailed breakdown in your billing settings under 'Invoice History'. Would you like me to guide you to where you can find this?",
+          "content": "Of course! If you decide to request a refund within 30 days, we can process that through your account settings or I can help you directly. You'll maintain access until the refund is processed. If you keep the subscription, you'll have full access for the year, and you can manage auto-renewal settings anytime. Would you like me to show you where to find these settings?",
           "timestamp": "2024-01-27T14:01:05Z"
         },
         {
           "role": "user",
-          "content": "Oh, that actually makes more sense now. Yes, please show me where to find the invoice history - I should probably keep track of this better going forward.",
+          "content": "Yes, please show me where to find those settings. And just to confirm - I have 30 days to decide about the refund?",
           "timestamp": "2024-01-27T14:01:25Z"
         },
         {
           "role": "agent",
-          "content": "I'm glad it's clearer now! To view your invoice history, go to Settings > Billing > Invoice History. Each invoice shows a detailed breakdown of regular and prorated charges. And remember, those 3 seats are still available until December - you can add and remove team members as needed without additional charges.",
+          "content": "Yes, exactly - you have 30 days from your subscription date to request a refund. To find your subscription settings, go to your account menu, select 'Settings', then 'Subscriptions'. There you can manage your subscription or request a refund if needed. Would you like me to walk you through anything else about the process?",
           "timestamp": "2024-01-27T14:01:35Z"
         }
       ]
     },
     {
       "scenario_id": "refund_request",
-      "chatbot_url": "https://substack.com/support",
+      "chatbot_url": "https://decagon.ai/embed/substack",
       "agent_system_prompt": "You are a customer service agent for Substack. You are doing your best to resolve users' issues as smoothly as possible.",
       "guidelines": "billing_notion.md",
       "successful_outcome": "The agent has successfully resolved this issue if they: (1) confirmed the request falls within Notion's 30-day refund window for yearly subscriptions, (2) initiated the refund process by collecting necessary information, (3) explained how to switch to monthly billing and assured that workspace access will be maintained during the transition, and (4) provided clear expectations about the refund timeline. The user should have stopped expressing urgency and anxiety about the charges and demonstrated confidence that their issue is being handled appropriately.",

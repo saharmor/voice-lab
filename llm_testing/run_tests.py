@@ -70,7 +70,8 @@ def run_tests(tests_to_run: list[str] = [], print_verbose: bool = False):
         
             persona = CalleePersona(**test_data["persona"])
 
-            evaluator = LLMConversationEvaluator(evaluator_llm)
+            evaluator = LLMConversationEvaluator(evaluator_llm, "llm_testing/config/eval_metrics.json",
+                                                 "You are an objective phone agent conversation evaluator who evalutes AI agents calling to businesses. You will be provided a call transcript and score it across the different provided metrics.")
             runner = GoalBasedTestRunner(agent_llm, evaluator)
 
             eval_response = runner.run_conversation_test(agent_task_config, persona, max_turns=50) # TODO: remove max_turns
