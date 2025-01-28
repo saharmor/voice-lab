@@ -32,18 +32,18 @@ issue_resolved_tool = {
     "type": "function",
     "function": {
         "name": "user_issue_resolved",
-        "description": "Determines if a user's issue has been fully resolved. This should ONLY be called when ALL of the following conditions are met:\n1. All requested actions have been completed (not just promised)\n2. The user has explicitly confirmed their satisfaction or indicated no further help is needed\n3. There are no pending updates or actions the user is waiting for",
+        "description": "Determines if a user's issue or question has been fully resolved. Call this function when ANY of these resolution patterns are detected:\n\n1. EXPLICIT resolution:\n- User clearly states the issue is resolved\n- User says 'thank you' and indicates they got what they needed\n- User confirms they understand next steps\n\n2. IMPLICIT resolution:\n- User expresses satisfaction ('helpful', 'great', etc.) AND confirms next steps\n- User acknowledges the information and states their intended action\n- User says they don't need anything else\n\n3. Do NOT consider resolved if:\n- User is still asking questions\n- User seems confused or uncertain\n- Information provided was incomplete\n- User needs to take actions but hasn't acknowledged them",
         "parameters": {
             "type": "object",
             "properties": {
                 "issue_resolved": {
                     "type": "boolean",
-                    "description": "Whether ALL requested actions are complete AND user has confirmed satisfaction"
+                    "description": "True if user expressed satisfaction AND acknowledged next steps (if any)"
                 },
                 "confirmation_type": {
                     "type": "string",
                     "enum": ["explicit", "implicit", "none"],
-                    "description": "How the user confirmed resolution: 'explicit' (clear confirmation), 'implicit' (positive but indirect), or 'none' (pending)"
+                    "description": "explicit: Clear statement of satisfaction/completion\nimplicit: Positive response + stated next steps\nnone: Still pending or unclear"
                 }
             },
             "required": ["issue_resolved", "confirmation_type"]
