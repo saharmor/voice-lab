@@ -2,20 +2,20 @@
   "test_scenarios": [
     {
       "scenario_id": "refund_policy_question",
-      "chatbot_url": "https://decagon.ai/embed/notion",
+      "chatbot_url": "https://decagon.ai/embed/notion", 
       "agent_system_prompt": "You are a customer service agent for Substack. You are doing your best to resolve users' issues as smoothly as possible.",
-      "guidelines": "billing_notion.md", 
+      "guidelines": "billing_notion.md",
       "successful_outcome": "The agent has successfully resolved this issue if they: (1) clearly explained Substack's refund policy for paid publications, (2) helped the user understand what options are available to them based on their specific subscription timing, (3) provided clear next steps if a refund is possible, and (4) explained how to manage subscription settings to prevent unwanted renewals. The user should demonstrate understanding of the refund policy and express satisfaction with the explanation.",
       "user_persona": {
         "profession": "Reader",
         "emotional_state": "curious but slightly concerned",
         "chat_style": "polite, straightforward questions, seeks clear information",
-        "context": "Recently subscribed to a paid publication and wants to understand refund options",
-        "initial_message": "Hi, I just subscribed to a paid newsletter yesterday and I'm wondering - what's your refund policy? Is it possible to get my money back if I change my mind?"
+        "context": "Recently subscribed to a paid Notion subscription and wants to understand refund options",
+        "initial_message": "Hi, I just subscribed to Notion's paid subscription and I'm wondering - what's your refund policy? Is it possible to get my money back if I change my mind?"
       },
       "mock_messages": [
         {
-          "role": "user",
+          "role": "user", 
           "content": "Hi, I just subscribed to a paid newsletter yesterday and I'm wondering - what's your refund policy? Is it possible to get my money back if I change my mind?",
           "timestamp": "2024-01-27T14:00:00Z"
         },
@@ -57,58 +57,58 @@
       ]
     },
     {
-      "scenario_id": "refund_request",
+      "scenario_id": "fraud_prevention",
       "chatbot_url": "https://decagon.ai/embed/substack",
       "agent_system_prompt": "You are a customer service agent for Substack. You are doing your best to resolve users' issues as smoothly as possible.",
-      "guidelines": "billing_notion.md",
-      "successful_outcome": "The agent has successfully resolved this issue if they: (1) confirmed the request falls within Notion's 30-day refund window for yearly subscriptions, (2) initiated the refund process by collecting necessary information, (3) explained how to switch to monthly billing and assured that workspace access will be maintained during the transition, and (4) provided clear expectations about the refund timeline. The user should have stopped expressing urgency and anxiety about the charges and demonstrated confidence that their issue is being handled appropriately.",
+      "guidelines": "fraud_substack.md",
+      "successful_outcome": "The agent has successfully resolved this issue if they: (1) explained Substack's fraud detection systems, (2) outlined steps authors can take to report suspicious activity, (3) provided guidance on best practices for preventing fraudulent payments, and (4) assured the author that Substack actively monitors and addresses fraud concerns. The author should feel confident in Substack's fraud prevention measures and know what actions they can take.",
       "user_persona": {
-        "profession": "Startup founder",
-        "emotional_state": "urgent and anxious about finances",
-        "chat_style": "direct, uses short sentences, emphasizes urgency through capitalization and timing-related words",
-        "context": "Accidentally purchased wrong plan, needs immediate resolution",
-        "initial_message": "I need an urgent refund. I signed up for a yearly Business plan yesterday but meant to choose monthly. This is a big charge for our startup and I need it reversed ASAP. How quickly can you help?"
+        "profession": "Newsletter author",
+        "emotional_state": "concerned but professional",
+        "chat_style": "detailed, asks specific questions, seeks thorough understanding",
+        "context": "Recently noticed some suspicious payment patterns and wants to understand prevention measures",
+        "initial_message": "Hi, I run a paid newsletter and I've noticed some unusual payment patterns. What systems does Substack have in place to prevent fraudulent payments, and what should I do if I suspect fraud?"
       },
       "mock_messages": [
         {
           "role": "user",
-          "content": "I need an urgent refund. I signed up for a yearly Business plan yesterday but meant to choose monthly. This is a big charge for our startup and I need it reversed ASAP. How quickly can you help?",
+          "content": "Hi, I run a paid newsletter and I've noticed some unusual payment patterns. What systems does Substack have in place to prevent fraudulent payments, and what should I do if I suspect fraud?",
           "timestamp": "2024-01-27T15:00:00Z"
         },
         {
           "role": "agent",
-          "content": "I'll help you with this right away since you signed up yesterday. This falls within our 30-day refund window. Could you please confirm the email address associated with your account so I can locate your subscription?",
-          "timestamp": "2024-01-27T15:00:05Z"
+          "content": "I understand your concern about fraud prevention. Substack uses advanced fraud detection systems including automated flagging of suspicious patterns and manual review processes. Could you tell me more about the unusual patterns you've noticed?",
+          "timestamp": "2024-01-27T15:00:10Z"
         },
         {
           "role": "user",
-          "content": "Yes it's startup@example.com - please process this quickly. When will I get the refund? And can I switch to monthly right after?",
-          "timestamp": "2024-01-27T15:00:20Z"
-        },
-        {
-          "role": "agent",
-          "content": "I've located your account. I can process the refund immediately, and it should appear in your account within 5-7 business days. Would you like me to help switch you to the monthly Business plan right now? Your workspace access won't be interrupted during this change.",
+          "content": "I've had several subscriptions from similar email addresses in quick succession, all using different payment methods. Is this something that would trigger your fraud detection?",
           "timestamp": "2024-01-27T15:00:30Z"
         },
         {
-          "role": "user",
-          "content": "5-7 days? That's quite long... But yes, please switch me to monthly. Will I need to pay for that right away or after the refund?",
+          "role": "agent",
+          "content": "Yes, that pattern would typically trigger our fraud detection system. We monitor for multiple subscriptions from similar addresses and rapid-fire payment method changes. Have you already received any automated fraud alerts from our system about these subscriptions?",
           "timestamp": "2024-01-27T15:00:45Z"
         },
         {
+          "role": "user",
+          "content": "No, I haven't received any alerts. Should I be proactively reporting these suspicious subscriptions somewhere? And what happens to the payments if they turn out to be fraudulent?",
+          "timestamp": "2024-01-27T15:01:00Z"
+        },
+        {
           "role": "agent",
-          "content": "I understand your concern about the timeline - it's unfortunately due to bank processing times. I can switch you to monthly billing now, and your first monthly charge won't occur until after the refund is processed. I'm initiating the refund now for $X. Would you like me to send you an email confirmation with all these details?",
-          "timestamp": "2024-01-27T15:00:55Z"
+          "content": "You can report suspicious subscriptions through your publisher dashboard under 'Subscriber Management'. If payments are confirmed fraudulent, they'll be automatically reversed and removed from your earnings. Would you like me to walk you through the reporting process and show you where to monitor suspicious activity?",
+          "timestamp": "2024-01-27T15:01:15Z"
         },
         {
           "role": "user",
-          "content": "Yes, please send the confirmation email. And just to be clear - our workspace stays active during all of this?",
-          "timestamp": "2024-01-27T15:01:10Z"
+          "content": "Yes, please show me where to find these tools. Also, are there any preventive measures I can take to reduce fraudulent subscriptions?",
+          "timestamp": "2024-01-27T15:01:30Z"
         },
         {
           "role": "agent",
-          "content": "Yes, absolutely - your workspace will remain fully active throughout this process. I've just sent the confirmation email with the refund details and timeline. Your plan will switch to monthly billing once the refund processes, and you'll receive another email confirmation then. Is there anything else you need clarity on?",
-          "timestamp": "2024-01-27T15:01:20Z"
+          "content": "I'll guide you through both the reporting tools and prevention measures. In your dashboard, go to 'Settings' then 'Security'. Here you can enable additional verification steps for new subscribers and set up custom fraud alerts. Would you like me to explain each security option in detail?",
+          "timestamp": "2024-01-27T15:01:45Z"
         }
       ]
     }

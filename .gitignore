@@ -168,3 +168,4 @@ test_results/*
 demo_*
 speech_testing/audio_files/*
 test.wav
+airtop_test.py
