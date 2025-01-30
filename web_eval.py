@@ -146,6 +146,7 @@ agent_llm = OpenAIProvider(api_key, "gpt-4o")
 
 
 async def run_tests():
+    test_results = []
     for scenario in read_test_scenarios():
         user_persona = json.dumps(
             {k: v for k, v in scenario["user_persona"].items() if k != "initial_message"})
@@ -172,7 +173,7 @@ Generate your next response for the following conversation so I can send it to t
 
             result = await send_and_measure(page,
                                             scenario["user_persona"]["initial_message"]
-                                            # , typing_delay=35
+                                            # , typing_delay=10
                                             )
             
             if not result['response']:
@@ -204,13 +205,15 @@ Generate your next response for the following conversation so I can send it to t
                 print("user: ", user_response.response_content)
                 conversation_history.append({"role": "user", "content": user_response.response_content})
 
+                if not await check_if_ongoing_conversation(page, msg_input_selector):
+                    raise Exception("Conversation ended by the chatbot")
+
                 # Send user generated text and then read the agent's response
                 result = await send_and_measure(page, user_response.response_content
-                                                # , typing_delay=35
+                                                # , typing_delay=10
                                                 )
                 
-                # TODO make this work :)
-                await asyncio.sleep(3)
+                time.sleep(3)
                 
                 agent_response = result['response']
                 if not agent_response:
@@ -224,21 +227,34 @@ Generate your next response for the following conversation so I can send it to t
                 print(f"Response: {agent_response}")
                 print(f"Latency: {result['latency']:.2f} seconds")
 
-            # evaluate the scenario
-            # TODO ADD LATENCY eval
-            eval_response = eval_test_scenario(scenario, conversation_history)
-            print(f"Evaluation result: {eval_response.evaluation_result}")
+                # TODO turn into an object
+                test_results.append((scenario, conversation_history))
         except Exception as e:
             print(f"An error occurred: {e}")
         finally:
             await browser.close()
+
+        for scenario, conversation_history in test_results:
+            # TODO ADD LATENCY eval
+            eval_response = eval_test_scenario(scenario, conversation_history)
+            print(f"Evaluation result: {eval_response.evaluation_result}")
+
+async def check_if_ongoing_conversation(page, msg_input_selector):
+    return await page.evaluate('''() => {
+        const input = document.querySelector('{msg_input_selector}');
+        if (input) return true;
+        return false;
+    }''')
 
 
 async def send_and_measure(page, message, typing_delay=0):
     msg_input_selector = 'textarea[placeholder="Ask a detailed question..."]'
 
     # Clear input if needed
-    await page.evaluate(f'''() => {{document.querySelector('{msg_input_selector}').value = '';}}''')
+    await page.evaluate(f'''() => {{
+        const input = document.querySelector('{msg_input_selector}');
+        if (input) input.value = '';
+    }}''')
 
     # Convert newlines to shift+enter equivalent to keep message as single input
     message = message.replace('\n', '\r')
@@ -248,11 +264,34 @@ async def send_and_measure(page, message, typing_delay=0):
 
     # Wait for response to appear and chatbot to finish typing and wait for spinner to disappear
     # TODO spinner can sometimes disappear and reappear as the agent is thinking. Wait for a few second to (a) check if there are new messages (i.e. multiple) or (b) agent is still thinking
+    
+    # Wait for initial spinner to appear
     await page.waitForSelector('.spinner', {'timeout': 15000})
-    await page.waitForFunction(
-        '!document.querySelector(".spinner")',
-        {'timeout': CHATBOT_REPLY_TIMEOUT_SEC * 1000}
-    )
+    
+    spinner_disappeared = False
+    start_wait = time.time()
+    
+    while not spinner_disappeared:
+        try:
+            # Wait for spinner to disappear
+            await page.waitForFunction(
+                '!document.querySelector(".spinner")',
+                {'timeout': CHATBOT_REPLY_TIMEOUT_SEC * 1000}
+            )
+
+            print("Spinner disappeared")
+            # Wait a bit to see if spinner reappears
+            time.sleep(3)
+            
+            # Check if spinner is still gone
+            spinner_disappeared = await page.evaluate('!document.querySelector(".spinner")')
+            print(f"Spinner disappeared after waiting? {spinner_disappeared}")
+        except Exception:
+            # Spinner reappeared or timeout, continue loop
+            continue
+            
+    if not spinner_disappeared:
+        raise TimeoutError("Agent response timed out")
 
     end_time = time.time()
 
