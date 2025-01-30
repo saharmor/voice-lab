@@ -5,7 +5,7 @@ import json
 from core.agent_config import AgentTaskConfig
 from core.personas import CalleePersona
 from core.data_types import TestedComponent, TestedComponentType
-from utils.generate_report import get_metric_success_indicator
+from core.utils.generate_report import get_metric_success_indicator
 from test_runner import GoalBasedTestRunner
 from core.evaluator import LLMConversationEvaluator
 from core.providers.openai import OpenAIProvider

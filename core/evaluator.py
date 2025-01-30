@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 
 from .agent_config import AgentTaskConfig
 from .interfaces import LLMInterface
-from .data_types import EntitySpeaking, EvaluationResponse
+from .data_types import EvaluationResponse
 from .personas import CalleePersona
 
 
@@ -78,12 +78,10 @@ success_flag is a boolean value that indicates whether the metric was achieved. 
 
     def _format_conversation(self, history: List[Dict[str, str]], persona: CalleePersona) -> str:
         formatted_history = ""
+        # TODO check if works for llm_testing
         for message in history:
-            if message["speaker"] == EntitySpeaking.CALLEE.value:
-                formatted_history += f"{' '.join(persona.role.split('_')).title() if persona else 'Callee'}: {message['text']}\n"
-            else:
-                formatted_history += f"Voice Agent: {message['text']}\n"
-        
+            formatted_history += f"{message['role']}: {message['content']}\n"
+
         return formatted_history
 
 

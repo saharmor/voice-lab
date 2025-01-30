@@ -57,6 +57,52 @@
       ]
     },
     {
+      "scenario_id": "subscription_price_inquiry",
+      "chatbot_url": "https://decagon.ai/embed/notion",
+      "agent_system_prompt": "You are a customer service agent for Notion. You are doing your best to resolve users' issues as smoothly as possible.",
+      "guidelines": "billing_notion.md", 
+      "successful_outcome": "The agent has successfully resolved this issue if they: (1) clearly explained the different pricing tiers available, (2) outlined the features included in each tier, (3) provided information about any current promotions or discounts, and (4) helped the user understand which plan might best suit their needs. The user should have a clear understanding of the pricing options.",
+      "user_persona": {
+        "profession": "Potential customer",
+        "emotional_state": "neutral",
+        "chat_style": "direct and brief",
+        "context": "Interested in subscribing but wants to know about pricing options",
+        "initial_message": "Hi, I'm interested in Notion but I can't find the pricing information. Can you tell me how much it costs per month?"
+      },
+      "mock_messages": [
+        {
+          "role": "user",
+          "content": "Hi, I'm interested in Notion but I can't find the pricing information. Can you tell me how much it costs per month?",
+          "timestamp": "2024-01-27T16:00:00Z"
+        },
+        {
+          "role": "agent",
+          "content": "I'd be happy to help! Notion offers several pricing tiers: Free, Plus ($8/month), Business ($15/user/month), and Enterprise. Would you like me to explain what features come with each plan?",
+          "timestamp": "2024-01-27T16:00:10Z"
+        },
+        {
+          "role": "user",
+          "content": "Yes, what's included in the Plus plan?",
+          "timestamp": "2024-01-27T16:00:20Z"
+        },
+        {
+          "role": "agent",
+          "content": "The Plus plan at $8/month includes unlimited storage, unlimited file uploads, 30-day page history, and the ability to share with up to 100 guests. You also get access to advanced features like custom API integration. Would you like to know about any specific features?",
+          "timestamp": "2024-01-27T16:00:30Z"
+        },
+        {
+          "role": "user",
+          "content": "That's helpful. Is there a discount if I pay annually?",
+          "timestamp": "2024-01-27T16:00:40Z"
+        },
+        {
+          "role": "agent",
+          "content": "Yes! If you choose annual billing, the Plus plan is $96/year, which saves you about 17% compared to monthly billing. Would you like me to show you how to get started with a subscription?",
+          "timestamp": "2024-01-27T16:00:50Z"
+        }
+      ]
+    },
+    {
       "scenario_id": "fraud_prevention",
       "chatbot_url": "https://decagon.ai/embed/substack",
       "agent_system_prompt": "You are a customer service agent for Substack. You are doing your best to resolve users' issues as smoothly as possible.",
