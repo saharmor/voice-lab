@@ -1,7 +1,9 @@
-from ..data_types import EntitySpeaking, TestResult
+from typing import Dict
+from ..data_types import TestResult
 import os
 import webbrowser
 from datetime import datetime
+
 
 def get_metric_success_indicator(metric):
     """Returns success indicator emoji based on metric evaluation"""
@@ -11,7 +13,11 @@ def get_metric_success_indicator(metric):
         return "✅" if int(metric.eval_output) > metric.eval_output_success_threshold else "❌"
 
 
-def generate_test_results_report(tests_run_result: TestResult):
+def generate_test_results_report(tests_run_result: Dict[str, TestResult]):
+    # TODO fix, pig
+    test_type = "llm_testing" if "start_timestamp" in tests_run_result[list(
+        tests_run_result.keys())[0]]['result'].conversation_history[0] else "web_eval"
+
     # Helper function to generate a consistent color based on test name
     def get_color_for_test(test_name):
         # Convert test name to a number using sum of character codes
@@ -32,15 +38,17 @@ def generate_test_results_report(tests_run_result: TestResult):
         return colors[hash_val % len(colors)]
 
     # Get base test names (without variations)
-    base_test_names = {name.split('_variation_')[0] for name in tests_run_result.keys()}
-    
+    base_test_names = {name.split('_variation_')[
+        0] for name in tests_run_result.keys()}
+
     # Generate color mapping
     color_map = {name: get_color_for_test(name) for name in base_test_names}
-    
-    css_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "html_report_style.css")
+
+    css_path = os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), "html_report_style.css")
     with open(css_path, 'r') as f:
         css_content = f.read()
-    
+
     # Start of HTML
     html = """<!DOCTYPE html>
 <html>
@@ -57,9 +65,9 @@ def generate_test_results_report(tests_run_result: TestResult):
       border-left-color: {color};
     }}
 """
-    
+
     html += """  </style>"""
-    
+
     html += """
     <script>
     function showConversation(testName) {
@@ -88,13 +96,20 @@ def generate_test_results_report(tests_run_result: TestResult):
         <tr>
           <th>Test Name</th>
           <th>Conversation</th>
-          <th class="llm-column">LLM</th>
 """
+
+    if test_type == "web_eval":
+        html += f"<th class='llm-column'>Chatbot URL</th>"
+        html += f"<th class='llm-column'>Agent Avg Latency</th>"
+        html += f"<th class='llm-column'>Agent Max Latency</th>"
+    else:
+        html += f"<th class='llm-column'>LLM</th>"
 
     # Get all unique metric names
     metric_names = set()
     for test_result in tests_run_result.values():
-        metric_names.update(m.name for m in test_result['result'].evaluation_result.evaluation_results)
+        metric_names.update(
+            m.name for m in test_result['result'].evaluation_result.evaluation_results)
 
     # Add metric column headers in alphabetical order
     metric_names = sorted(metric_names)
@@ -107,16 +122,15 @@ def generate_test_results_report(tests_run_result: TestResult):
       <tbody>"""
 
     # Sort test results by base name to group variations together
-    sorted_tests = sorted(tests_run_result.items(), 
-                         key=lambda x: (x[0].split('_variation_')[0], x[0]))
-
+    sorted_tests = sorted(tests_run_result.items(),
+                          key=lambda x: (x[0].split('_variation_')[0], x[0]))
 
     modals_html = ""  # Store all modals HTML
-    for test_name, tests_run_result in sorted_tests:
+    for test_name, tests_components_result in sorted_tests:
         # Get base test name for styling
         base_name = test_name.split('_variation_')[0]
         css_class_name = base_name.lower().replace(' ', '-')
-        
+
         # Generate the row with appropriate test group class
         html += f"""
         <tr class="test-group test-group-{css_class_name}">
@@ -128,13 +142,30 @@ def generate_test_results_report(tests_run_result: TestResult):
               View Conversation
             </button>
           </td>
+          """
+        if test_type == "web_eval":
+            html += f"""<td>
+            {f'<span class="llm-badge">{tests_components_result["tested_component"]["chatbot_url"]}</span>'}
+            </td>
+            
+            <td>
+            {f'<span>{tests_components_result["avg_latency"]:.2f}</span>'}
+            </td>
+            
+            <td>
+            {f'<span>{tests_components_result["max_latency"]:.2f}</span>'}
+            </td>
+          """
+        else:
+            html += f"""
           <td class="llm-column">
-            {f'<span class="llm-badge">{tests_run_result["tested_component"][0]}</span>' if tests_run_result["tested_component"] else ''}
+            {f'<span class="llm-badge">{tests_components_result["tested_component"]
+                                        [0]}</span>' if tests_components_result["tested_component"] else ''}
           </td>"""
 
         # Create a dict for quick metric lookup, sorted alphabetically by metric name
-        metrics_dict = {m.name: m for m in tests_run_result["result"].evaluation_result.evaluation_results}
-
+        metrics_dict = {
+            m.name: m for m in tests_components_result["result"].evaluation_result.evaluation_results}
 
         # Add data for each metric
         for metric_name in metric_names:
@@ -143,7 +174,8 @@ def generate_test_results_report(tests_run_result: TestResult):
                 symbol = get_metric_success_indicator(metric)
                 success = "Pass" if symbol == "✅" else "Fail"
                 success_class = "success" if success == "Pass" else "failure"
-                score = f" ({metric.eval_output})" if metric.eval_output_type == "range_score" else ""
+                score = f" ({
+                    metric.eval_output})" if metric.eval_output_type == "range_score" else ""
 
                 html += f"""
           <td>
@@ -153,7 +185,6 @@ def generate_test_results_report(tests_run_result: TestResult):
             else:
                 html += """
           <td>N/A</td>"""
-
 
         html += """
         </tr>"""
@@ -165,22 +196,31 @@ def generate_test_results_report(tests_run_result: TestResult):
             <span class="close-btn" onclick="closeModal('{test_name}')">&times;</span>
             <h2>Conversation History - {test_name}</h2>
             <div class="conversation-container">"""
-        
+
         # Add conversation messages for this test
-        for message in tests_run_result["result"].conversation_history:
-            role = ' '.join(word.capitalize() for word in message["speaker"].replace('_', ' ').split())
-            content = message["text"]
-            message_class = "human-message" if role == EntitySpeaking.CALLEE else "assistant-message"
-            start_timestamp_html = f"{message['start_timestamp']:.1f}s" if 'start_timestamp' in message else ""
-            end_timestamp_html = f"{message['end_timestamp']:.1f}s" if 'end_timestamp' in message else ""
-            if start_timestamp_html and end_timestamp_html:
-                timestamp_html = f"[{start_timestamp_html} -> {end_timestamp_html}]"
+        # TODO content and role are web_eval's version. Should be unified to work with the llm_testing version (text and EntitySpeaking)
+        for message in tests_components_result["result"].conversation_history:
+            role = ' '.join(word.capitalize()
+                            for word in message["role"].replace('_', ' ').split())
+            content = message["content"]
+            message_class = "human-message" if role == 'User' else "assistant-message"
+            if test_type != "web_eval":
+                start_timestamp_html = f"{
+                    message['start_timestamp']:.1f}s" if 'start_timestamp' in message else ""
+                end_timestamp_html = f"{
+                    message['end_timestamp']:.1f}s" if 'end_timestamp' in message else ""
+                if start_timestamp_html and end_timestamp_html:
+                    timestamp_html = f"[{
+                        start_timestamp_html} -> {end_timestamp_html}] "
+            else:
+                timestamp_html = ""
+
             modals_html += f"""
               <div class="message {message_class}">
-                <strong>{timestamp_html} {role}</strong><br>
+                <strong>{timestamp_html}{role}</strong><br>
                 {content}
               </div>"""
-            
+
         modals_html += """
             </div>
           </div>
@@ -191,7 +231,7 @@ def generate_test_results_report(tests_run_result: TestResult):
       </tbody>
     </table>
   </div>"""
-    
+
     # Add all modals after the table
     html += modals_html
 
@@ -205,9 +245,10 @@ def generate_test_results_report(tests_run_result: TestResult):
     results_dir = "./test_results"
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
-        
+
     with open(f"{results_dir}/test_run_{timestamp}.html", "w") as f:
         f.write(html)
-    
-    html_path = f"file://{os.path.abspath(f'{results_dir}/test_run_{timestamp}.html')}"
+
+    html_path = f"file://{os.path.abspath(
+        f'{results_dir}/test_run_{timestamp}.html')}"
     webbrowser.get('chrome').open(html_path, new=2)

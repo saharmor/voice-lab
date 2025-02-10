@@ -123,7 +123,7 @@ def eval_test_scenario(scenario, conversation_history):
         },
     )
 
-    result = TestResult(
+    return TestResult(
         evaluation_result=evaluator.evaluate(
             conversation_history,
             None,
@@ -134,10 +134,7 @@ def eval_test_scenario(scenario, conversation_history):
         conversation_history=conversation_history
     )
 
-    generate_test_results_report(result)
-    return result
-
-
+    
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError("Please set OPENAI_API_KEY environment variable")
@@ -145,111 +142,123 @@ if not api_key:
 agent_llm = OpenAIProvider(api_key, "gpt-4o")
 
 
-async def run_tests():
+async def run_tests(tests_to_run_count=999, verbose=False):
     test_results = []
-    for scenario in read_test_scenarios():
-        user_persona = json.dumps(
-            {k: v for k, v in scenario["user_persona"].items() if k != "initial_message"})
-        issue_resolved = False
-        system_prompt = f"""You are my virtual assistant who contacts customer support on my behalf. About me: {user_persona}
+    browser = await launch(headless=False)
+    try:
+        for scenario in read_test_scenarios()[:tests_to_run_count]:
+            try:
+                user_persona = json.dumps(
+                    {k: v for k, v in scenario["user_persona"].items() if k != "initial_message"})
+                issue_resolved = False
+                system_prompt = f"""You are my virtual assistant who contacts customer support on my behalf. About me: {user_persona}
 
-Generate your next response for the following conversation so I can send it to the customer support agent.
-"""
-        conversation_history = []
+        Generate your next response for the following conversation so I can send it to the customer support agent.
+        """
+                conversation_history = []
+                reply_latencies = []
 
-        browser = await launch(headless=False)
-        page = await browser.newPage()
+                page = await browser.newPage()
 
-        msg_input_selector = 'textarea[placeholder="Ask a detailed question..."]'
-        try:
-            # Navigate to the chatbot
-            await page.goto(scenario["chatbot_url"])
+                msg_input_selector = 'textarea[placeholder="Ask a detailed question..."]'
+                # Navigate to the chatbot
+                await page.goto(scenario["chatbot_url"])
 
-            # wait for the page to load
-            await asyncio.sleep(5)
+                # wait for the page to load
+                await asyncio.sleep(5)
 
-            # Wait for the chat interface to load
-            await page.waitForSelector(msg_input_selector)
+                # Wait for the chat interface to load
+                await page.waitForSelector(msg_input_selector)
 
-            result = await send_and_measure(page,
-                                            scenario["user_persona"]["initial_message"]
-                                            # , typing_delay=10
-                                            )
-            
-            if not result['response']:
-                raise ValueError(f"Agent response not found for initial message (probably a selector issue)")
-            
-            # TODO REMOVE
-            print(f"Response: {result['response']}")
-            print(f"Latency: {result['latency']:.2f} seconds")
-
-            conversation_history.append(
-                {"role": "user", "content": scenario["user_persona"]["initial_message"]})
-            for msg in result['response']:
-                conversation_history.append({"role": "agent", "content": msg})
-
-            while not issue_resolved:
-                user_response = agent_llm.plain_call(system_prompt,
-                                                      convert_conv_history_to_openai_format(conversation_history, "user"),
-                                                      [issue_resolved_tool]
-                                                      )
-                
-                if user_response.tools_called and user_response.tools_called[0].function.name == "user_issue_resolved":
-                    arguments = json.loads(user_response.tools_called[0].function.arguments)
-                    issue_resolved = arguments["issue_resolved"]
-                    if issue_resolved:
-                        issue_resolved = True
-                        print("User's issue has been resolved")
-                        break
-
-                print("user: ", user_response.response_content)
-                conversation_history.append({"role": "user", "content": user_response.response_content})
-
-                if not await check_if_ongoing_conversation(page, msg_input_selector):
-                    raise Exception("Conversation ended by the chatbot")
-
-                # Send user generated text and then read the agent's response
-                result = await send_and_measure(page, user_response.response_content
+                result = await send_and_measure(page, msg_input_selector,
+                                                scenario["user_persona"]["initial_message"]
                                                 # , typing_delay=10
                                                 )
                 
-                time.sleep(3)
+                if not result['response']:
+                    raise ValueError(f"Agent response not found for initial message (probably a selector issue)")
                 
-                agent_response = result['response']
-                if not agent_response:
-                    raise ValueError(f"Agent response not found for user message (probably a selector issue)")
-                
-                print("assistant: ", agent_response)
-                for msg in agent_response:
+                if verbose:
+                    print(f"Latency: {result['latency']:.2f} seconds")
+                reply_latencies.append(result['latency'])
+
+                conversation_history.append(
+                    {"role": "user", "content": scenario["user_persona"]["initial_message"]})
+                for msg in result['response']:
                     conversation_history.append({"role": "agent", "content": msg})
 
-                # TODO REMOVE
-                print(f"Response: {agent_response}")
-                print(f"Latency: {result['latency']:.2f} seconds")
+                while not issue_resolved:
+                    user_response = agent_llm.plain_call(system_prompt,
+                                                        convert_conv_history_to_openai_format(conversation_history, "user"),
+                                                        [issue_resolved_tool]
+                                                        )
+                    
+                    if user_response.tools_called and user_response.tools_called[0].function.name == "user_issue_resolved":
+                        arguments = json.loads(user_response.tools_called[0].function.arguments)
+                        issue_resolved = arguments["issue_resolved"]
+                        print("User's issue resolved?", issue_resolved)    
+                        break
 
+                    if verbose:
+                        print("user: ", user_response.response_content)
+                    conversation_history.append({"role": "user", "content": user_response.response_content})
+
+                    if not await check_if_ongoing_conversation(page, msg_input_selector):
+                        print("Conversation ended by the chatbot")
+                        break
+
+                    # Send user generated text and then read the agent's response
+                    result = await send_and_measure(page, msg_input_selector, user_response.response_content
+                                                    # , typing_delay=10
+                                                    )
+                    
+                    time.sleep(3)
+                    
+                    agent_response = result['response']
+                    if not agent_response:
+                        raise ValueError(f"Agent response not found for user message (probably a selector issue)")
+                    
+                    if verbose:
+                        print("assistant: ", agent_response)
+                    for msg in agent_response:
+                        conversation_history.append({"role": "agent", "content": msg})
+
+                    if verbose:
+                        print(f"Latency: {result['latency']:.2f} seconds")
+                    reply_latencies.append(result['latency'])
+                
                 # TODO turn into an object
-                test_results.append((scenario, conversation_history))
-        except Exception as e:
-            print(f"An error occurred: {e}")
-        finally:
-            await browser.close()
+                test_results.append((scenario, conversation_history, reply_latencies))
+            except Exception as e:
+                print(f"Error occurred when running test {scenario['scenario_id']}: {e}")
+    finally:
+        await browser.close()
 
-        for scenario, conversation_history in test_results:
-            # TODO ADD LATENCY eval
-            eval_response = eval_test_scenario(scenario, conversation_history)
-            print(f"Evaluation result: {eval_response.evaluation_result}")
+    print(f"\nEvaluating {len(test_results)} scenarios")
+    test_results_report = {}
+    for scenario, conversation_history, reply_latencies in test_results:
+        # TODO ADD LATENCY eval
+        eval_response = eval_test_scenario(scenario, conversation_history)
+        test_results_report[scenario["scenario_id"]] = {
+            "tested_component": scenario,
+            "result": eval_response,
+            "avg_latency": sum(reply_latencies) / len(reply_latencies),
+            "max_latency": max(reply_latencies)
+        }
+        print(f"Evaluation result: {eval_response.evaluation_result}")
+
+    generate_test_results_report(test_results_report)
+    return test_results_report
 
 async def check_if_ongoing_conversation(page, msg_input_selector):
-    return await page.evaluate('''() => {
+    return await page.evaluate(f'''() => {{
         const input = document.querySelector('{msg_input_selector}');
         if (input) return true;
         return false;
-    }''')
+    }}''')
 
 
-async def send_and_measure(page, message, typing_delay=0):
-    msg_input_selector = 'textarea[placeholder="Ask a detailed question..."]'
-
+async def send_and_measure(page, msg_input_selector, message, typing_delay=0):
     # Clear input if needed
     await page.evaluate(f'''() => {{
         const input = document.querySelector('{msg_input_selector}');
@@ -279,13 +288,11 @@ async def send_and_measure(page, message, typing_delay=0):
                 {'timeout': CHATBOT_REPLY_TIMEOUT_SEC * 1000}
             )
 
-            print("Spinner disappeared")
             # Wait a bit to see if spinner reappears
-            time.sleep(3)
+            time.sleep(1.5)
             
             # Check if spinner is still gone
             spinner_disappeared = await page.evaluate('!document.querySelector(".spinner")')
-            print(f"Spinner disappeared after waiting? {spinner_disappeared}")
         except Exception:
             # Spinner reappeared or timeout, continue loop
             continue
@@ -330,7 +337,7 @@ async def send_and_measure(page, message, typing_delay=0):
 
 
 async def main():
-    await run_tests()
+    await run_tests(tests_to_run_count=2)
 
 if __name__ == "__main__":
     try:
