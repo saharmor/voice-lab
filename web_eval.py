@@ -17,15 +17,12 @@ from core.utils.generate_report import generate_test_results_report
 
 CHATBOT_REPLY_TIMEOUT_SEC = 60
 FAQS_FOLDER = "faqs"
-SHADOW_ROOT_SELECTOR = 'div[data-sierra-chat-container]'
-CHAT_INPUT_SELECTOR = 'div[role="textbox"][placeholder], input[placeholder]'
+
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError("Please set OPENAI_API_KEY environment variable")
 
 agent_llm = OpenAIProvider(api_key, "gpt-4o-mini")
-
-
 
 issue_resolved_tool = {
     "type": "function",
@@ -103,22 +100,7 @@ def eval_test_scenario(scenario, conversation_history):
     for msg in conversation_history:
         conversation_history_str += f"{msg['role']}: {msg['content']}\n"
 
-#     eval_prompt = f"""You are an objective conversational AI chatbot evaluator who evalutes customer support AI chatbots that text with customers. You will be provided a chat transcript and score it across the different provided metrics.
-# Evaluate the following conversation according to Notion's customer support guidelines (attached below) and provide a score according to the scoring format and an explanation of your evaluation for each metric.
-# success_flag is a boolean value that indicates whether the metric was achieved. range_score is a number between 0 and 10 that indicates the degree to which the metric was achieved.
 
-# # Metrics
-# {evaluator._generate_metrics_prompt()}
-
-# # Success criteria
-# {success_criteria}
-
-# # Guidelines
-# {scenario_guidelines}
-
-# # Conversation
-# {conversation_history_str}
-# """
 
     user_persona = CalleePersona(
         name="User",
@@ -155,131 +137,237 @@ class ChatMessageWindow(BaseModel):
     status: str
     placeholder_txt: Optional[str] = None
 
+class ChatSessionManager:
+    def __init__(self, page, chat_input_selector, shadow_root_selector=None):
+        self.page = page
+        self.shadow_root_selector = shadow_root_selector
 
-async def check_if_support_chat_running(page) -> ChatStatus:
-    # Ask LLM if this appears to be a support chat page
-    prompt = """Analyze this webpage screenshot and determine if the chat is already running and ready to send a message.
+        # TODO get chat_input_element using VLMs instead of user to provide
+        self.chat_input_selector = chat_input_selector
+
+    async def check_if_support_chat_running(self) -> ChatStatus:
+        # Ask LLM if this appears to be a support chat page
+        prompt = """Analyze this webpage screenshot and determine if the chat is already running and ready to send a message.
 Your response should be {status: <status_string>, btn_name: <button_name>}. btn_name is the name of the text of the button that needs to be clicked to start the chat if it exists. Otherwise, no need to return this key.
 Respond with status running if the chat is already running.
 Respond with status exists and the name of the text of the button that needs to be clicked to start the chat if it exists.
 Respond with status unknown otherwise, i.e. if it is not clear whether the chat is running or not or you couldn't find a button to start the chat.
 """
 
-    # Send screenshot and prompt to LLM for analysis
-    screenshot = await page.screenshot({'fullPage': True})
-    with tempfile.NamedTemporaryFile(suffix='.png') as temp_file:
-        temp_file.write(screenshot)
-        response = await agent_llm.analyze_image(temp_file.name, prompt, ChatStatus)
+        # Send screenshot and prompt to LLM for analysis
+        screenshot = await self.page.screenshot({'fullPage': True})
+        with tempfile.NamedTemporaryFile(suffix='.png') as temp_file:
+            temp_file.write(screenshot)
+            response = await agent_llm.analyze_image(temp_file.name, prompt, ChatStatus)
+        
         return response
 
-
-async def get_shadow_root(page, root_selector):
-    shadow_root = await page.querySelector(root_selector)
-    return shadow_root
-
-
-async def get_element_from_shadow_dom(page, root_selector, selector):
-    shadow_root = await get_shadow_root(page, root_selector)
-
-    if shadow_root:
-        # Get the shadow root and search within it
-        searched_element = await page.evaluateHandle('''(container, selector) => {
-            const shadowRoot = container.shadowRoot;
-            if (!shadowRoot) return null;
-            return shadowRoot.querySelector(selector);
-        }''', shadow_root, selector)
+    async def get_shadow_root(self):
+        if self.shadow_root_selector:
+            shadow_root = await self.page.evaluateHandle('''(shadow_root_selector) => {
+                const container = document.querySelector(shadow_root_selector);
+                return container ? container.shadowRoot : null;
+            }''', self.shadow_root_selector)
+        else:
+            shadow_root = None
+        
+        return shadow_root
+    
+    async def get_element_from_dom(self, selector):     
+        if self.shadow_root_selector:
+            shadow_root = await self.get_shadow_root()
+            searched_element = await self.page.evaluateHandle('''(root, selector) => {
+                if (!root) return null;
+                return root.querySelector(selector);
+            }''', shadow_root, selector)
+        else:
+            searched_element = await self.page.evaluateHandle('''(selector) => {
+                return document.querySelector(selector);
+            }''', selector)
 
         if searched_element:
             return searched_element
         else:
-            raise ValueError(f"Chat input element with placeholder text '{
-                             selector}' was not found in shadow DOM.")
-    else:
-        raise ValueError("Chat container was not found on the page.")
+            raise ValueError(f"Element {selector} was not found in shadow DOM.")
 
 
-async def get_chatbot_input_element(page):
-    prompt = """Analyze this webpage screenshot and find the placeholder text of the chat input element, e.g. "Ask a detailed question...".
-The input element is the one that contains the placeholder text and where the user can type their message.
-Your response should be {status: <status_string>, placeholder_txt: <placeholder_text>}. placeholder_txt is the placeholder text of the chat input element.
-Respond with status exists and the placeholder text of the chat input element. Respond with status unknown if you can't find the chat input element.
-"""
+    async def find_chatbot_input_element(self):
+        # TODO haven't tested this yet
+        prompt = """Analyze this webpage screenshot and find the placeholder text of the chat input element, e.g. "Ask a detailed question...".
+    The input element is the one that contains the placeholder text and where the user can type their message.
+    Your response should be {status: <status_string>, placeholder_txt: <placeholder_text>}. placeholder_txt is the placeholder text of the chat input element.
+    Respond with status exists and the placeholder text of the chat input element. Respond with status unknown if you can't find the chat input element.
+    """
 
-    screenshot = await page.screenshot({'fullPage': True})
-    with tempfile.NamedTemporaryFile(suffix='.png') as temp_file:
-        temp_file.write(screenshot)
-        # TODO SAHARRR REMOVE, just mock for development
-        # response = await agent_llm.analyze_image(temp_file.name, prompt, ChatMessageWindow)
-        response = ChatMessageWindow(
-            status="exists", placeholder_txt="Message…")
+        screenshot = await self.page.screenshot({'fullPage': True})
+        with tempfile.NamedTemporaryFile(suffix='.png') as temp_file:
+            temp_file.write(screenshot)
+            response = await agent_llm.analyze_image(temp_file.name, prompt, ChatMessageWindow)
+            chat_input_selector = f'input[placeholder="{response.placeholder_txt}"]'
+            chat_input = await self.get_element_from_dom(chat_input_selector)
 
-        # return the input element that contains the placeholder text
-        # chat_input_elements = await page.xpath(f'//input[@placeholder="{response.placeholder_txt}"]')
-        # if chat_input_elements:
-        #     # Click the first matching button
-        #     await chat_input_elements[0].click()
-        # else:
-        #     raise ValueError(f"Chat input element with placeholder text '{response.placeholder_txt}' was not found.")
+            if chat_input:
+                return chat_input
+            else:
+                raise ValueError(f"Chat input element with placeholder text '{chat_input_selector}' was not found in shadow DOM.")
 
-        # return chat_input_elements[0]
-        # find the input element or textbox that contains the placeholder text
-        # Get shadow root from <div data-sierra-chat-container=""></div>
 
-        placeholder_text = response.placeholder_txt.replace("...", "…")
-        chat_input = await get_element_from_shadow_dom(page,
-                                                       SHADOW_ROOT_SELECTOR,
-                                                       CHAT_INPUT_SELECTOR
-                                                       )
-
+    async def get_chatbot_input_element(self):
+        chat_input = await self.get_element_from_dom(self.chat_input_selector)
         if chat_input:
             return chat_input
         else:
-            raise ValueError(f"Chat input element with placeholder text '{
-                             placeholder_text}' was not found in shadow DOM.")
+            raise ValueError(f"Chat input element with selector '{self.chat_input_selector}' was not found in shadow DOM.")
 
 
-async def initiate_support_chat(page, chatbot_url):
-    # Navigate to the chatbot
-    await page.goto(chatbot_url)
-
-    # wait for five seconds to make sure the page is loaded
-    await asyncio.sleep(3)
-
-    # check if chat is already running, e.g. https://substack.com/support
-    # chat_status = await check_if_support_chat_running(page)
-
-    # TODO SAHARRR REMOVE, just mock for development
-    chat_status = ChatStatus(status="exists", btn_name="Start a chat")
-
-    # TODO use shadow root to find the chat button?
-    if chat_status.status == "running":
-        return True
-    elif chat_status.status == "exists":
-        chat_button_xpath = f'//button[contains(normalize-space(.), "{
-            chat_status.btn_name}")]'
-
-        await page.waitForXPath(chat_button_xpath, timeout=10000)
-        chat_buttons = await page.xpath(chat_button_xpath)
-        if chat_buttons:
-            await chat_buttons[0].click()
-        else:
-            raise ValueError(f"Chat button with text '{
-                             chat_status.btn_name}' was not found.")
-
-        # wait for five seconds to make sure the chat is running
+    async def initiate_support_chat(self, chatbot_url):
+        # Navigate to the chatbot and wait for page to load
+        await self.page.goto(chatbot_url)
         await asyncio.sleep(3)
-    elif chat_status.status == "unknown":
-        # save screenshot of the page
-        screenshot = await page.screenshot({'fullPage': True})
-        with open(f"{chatbot_url}_no_chat_button.png", "wb") as f:
-            f.write(screenshot)
-        raise ValueError(f"Can't find a way to start the chat. Please check the screenshot at {
-                         chatbot_url}_no_chat_button.png")
 
-    # find the input element
-    # TODO SAHARRR REMOVE, just mock for development
-    chat_input_element = await get_chatbot_input_element(page)
-    return chat_input_element
+        # check if chat is already running, e.g. https://substack.com/support
+        chat_status = await self.check_if_support_chat_running()
+
+        # TODO REMOVE, just mock for development
+        # chat_status = ChatStatus(status="exists", btn_name="Start a chat")
+
+        # TODO use shadow root to find the chat button?
+        if chat_status.status == "running":
+            return True
+        elif chat_status.status == "exists":
+            chat_button_xpath = f'//button[contains(normalize-space(.), "{
+                chat_status.btn_name}")]'
+
+            await self.page.waitForXPath(chat_button_xpath, timeout=10000)
+            chat_buttons = await self.page.xpath(chat_button_xpath)
+            if chat_buttons:
+                await chat_buttons[0].click()
+            else:
+                raise ValueError(f"Chat button with text '{
+                                chat_status.btn_name}' was not found.")
+
+            # wait for a few seconds to make sure the chat is running
+            await asyncio.sleep(3)
+        elif chat_status.status == "unknown":
+            # save screenshot of the page
+            screenshot = await self.page.screenshot({'fullPage': True})
+            with open(f"{chatbot_url}_no_chat_button.png", "wb") as f:
+                f.write(screenshot)
+            raise ValueError(f"Can't find a way to start the chat. Please check the screenshot at {
+                            chatbot_url}_no_chat_button.png")
+
+        chat_input_element = await self.get_chatbot_input_element()
+        return chat_input_element
+
+    async def check_if_ongoing_conversation(self):
+        chat_input_element = await self.get_chatbot_input_element()
+        return chat_input_element is not None
+
+    async def count_agent_msgs(self):
+        shadow_root = await self.get_shadow_root() if self.shadow_root_selector else None
+            
+        return await self.page.evaluate('''(container) => {
+            const root = container || document;
+            if (!container && !document) return 0;
+            // Look specifically for li elements with role-assistant class that have text content
+            const elements = Array.from(root.querySelectorAll('li.role-assistant'))
+                .filter(el => el.textContent.trim().length > 0);
+            return elements.length;
+        }''', shadow_root)
+
+
+    async def get_last_messages(self):
+        # Get initial message count with more specific targeting
+        initial_message_count = await self.count_agent_msgs()
+
+        curr_message_count = initial_message_count
+        current_time = time.time()
+        while initial_message_count >= curr_message_count and time.time() - current_time < CHATBOT_REPLY_TIMEOUT_SEC:
+            await asyncio.sleep(3)
+            curr_message_count = await self.count_agent_msgs()
+
+        # wait for the agent to finish typing
+        # TODO build a smart mechanism that waits until text stops changing + no spinner is shown
+        await asyncio.sleep(5)
+
+        if initial_message_count >= curr_message_count:
+            raise ValueError(f"Agent didn't reply after time {
+                            CHATBOT_REPLY_TIMEOUT_SEC} seconds")
+
+        # Get all messages after waiting
+        shadow_root = await self.get_shadow_root() if self.shadow_root_selector else None
+        messages = await self.page.evaluateHandle('''(container) => {
+            // If container is provided (shadow root case), use it as root
+            // Otherwise use document as root
+            const root = container || document;
+            
+            // Get the message container (ol element)
+            const messageContainer = root.querySelector('ol');
+            if (!messageContainer) return [];
+            
+            // Get all message elements, excluding the header
+            const allMessages = Array.from(messageContainer.querySelectorAll('li'))
+                .filter(li => li.getAttribute('aria-roledescription') === 'message');
+            
+            // Process messages in sequence
+            const conversationTurns = [];
+            
+            allMessages.forEach(element => {
+                const isAssistant = element.classList.contains('role-assistant');
+                const sender = isAssistant ? 'assistant' : 'user';
+                const textDiv = element.querySelector('.flex.flex-col.gap-3');
+                const message = textDiv ? textDiv.textContent.trim() : '';
+                
+                if (!message) return;
+                
+                // Create a new turn
+                const turn = {
+                    sender: sender,
+                    messages: [message]
+                };
+                conversationTurns.push(turn);
+            });
+
+            return conversationTurns;
+        }''', shadow_root)
+
+        messages_info = await messages.jsonValue()
+
+        # return all messages after last user message
+        return messages_info[-1]
+
+
+    async def send_and_measure(self, msg_input_element, message, typing_delay=0):
+        # Convert newlines to shift+enter equivalent to keep message as single input
+        message = message.replace('\n', '\r')
+        await msg_input_element.type(message, {'delay': typing_delay})
+        await self.page.keyboard.press('Enter')
+
+        # TODO start and end time should be caluclated in the self.get_last_messages() function as this is where we wait for response with added sleep duration
+        start_time = time.time()
+
+        # Wait for response to appear and chatbot to finish typing
+        agent_replied = False
+        while not agent_replied:
+            message_info = await self.get_last_messages()
+            if message_info['sender'] == 'assistant':
+                response = message_info['messages']
+                agent_replied = True
+                break
+
+            # sleep for a few seconds and throw if timeout passes
+            await asyncio.sleep(3)
+            if time.time() - start_time > CHATBOT_REPLY_TIMEOUT_SEC:
+                raise ValueError("Agent didn't reply in time")
+
+        end_time = time.time()
+
+        return {
+            'response': response if response != "No response found" else None,
+            'latency': round(end_time - start_time, 2),
+            'timestamp': datetime.now().isoformat()
+        }
+
 
 
 async def run_tests(tests_to_run_count=999, verbose=False):
@@ -299,8 +387,11 @@ Generate your next response for the following conversation so I can send it to t
                 reply_latencies = []
 
                 page = await browser.newPage()
-                msg_input_element = await initiate_support_chat(page, scenario["chatbot_url"])
-                result = await send_and_measure(page, msg_input_element,
+
+                # Sahar TODO get chat_input_selector from the config (future: automated)
+                chat_session_manager = ChatSessionManager(page, 'div[role="textbox"][placeholder], input[placeholder]', 'div[data-sierra-chat-container]')
+                msg_input_element = await chat_session_manager.initiate_support_chat(scenario["chatbot_url"])
+                result = await chat_session_manager.send_and_measure(msg_input_element,
                                                 scenario["user_persona"]["initial_message"]
                                                 # , typing_delay=10
                                                 )
@@ -346,14 +437,14 @@ Generate your next response for the following conversation so I can send it to t
                     conversation_history.append(
                         {"role": "user", "content": user_response.response_content})
 
-                    if not await check_if_ongoing_conversation(page):
+                    if not await chat_session_manager.check_if_ongoing_conversation():
                         print("Conversation ended by the chatbot")
                         break
 
                     # Send user generated text and then read the agent's response
-                    result = await send_and_measure(page, msg_input_element, user_response.response_content
-                                                    # , typing_delay=10
-                                                    )
+                    result = await chat_session_manager.send_and_measure(msg_input_element, user_response.response_content
+                                                                         # , typing_delay=10
+                                                                         )
 
                     time.sleep(3)
 
@@ -398,109 +489,6 @@ Generate your next response for the following conversation so I can send it to t
     return test_results_report
 
 
-async def check_if_ongoing_conversation(page):
-    chat_input_element = await get_chatbot_input_element(page)
-    return chat_input_element is not None
-
-
-async def count_agent_msgs(page, shadow_root):
-    return await page.evaluate('''(container) => {
-        const shadowRoot = container.shadowRoot;
-        if (!shadowRoot) return 0;
-        // Look specifically for li elements with role-assistant class that have text content
-        const elements = Array.from(shadowRoot.querySelectorAll('li.role-assistant'))
-            .filter(el => el.textContent.trim().length > 0);
-        return elements.length;
-    }''', shadow_root)
-
-
-async def get_last_messages(page):
-    shadow_root = await get_shadow_root(page, SHADOW_ROOT_SELECTOR)
-
-    # Get initial message count with more specific targeting
-    initial_message_count = await count_agent_msgs(page, shadow_root)
-
-    curr_message_count = initial_message_count
-    current_time = time.time()
-    while initial_message_count >= curr_message_count and time.time() - current_time < CHATBOT_REPLY_TIMEOUT_SEC:
-        await asyncio.sleep(3)
-        curr_message_count = await count_agent_msgs(page, shadow_root)
-
-    # wait for the agent to finish typing
-    # TODO build a smart mechanism that waits until text stops changing + no spinner is shown
-    await asyncio.sleep(5)
-
-    if initial_message_count >= curr_message_count:
-        raise ValueError(f"Agent didn't reply after time {
-                         CHATBOT_REPLY_TIMEOUT_SEC} seconds")
-
-    # Get all messages after waiting
-    messages = await page.evaluateHandle('''(container) => {
-        const shadowRoot = container.shadowRoot;
-        if (!shadowRoot) return [];
-        
-        // Get the message container (ol element)
-        const messageContainer = shadowRoot.querySelector('ol');
-        // Get all message elements, excluding the header
-        const allMessages = Array.from(messageContainer.querySelectorAll('li'))
-            .filter(li => li.getAttribute('aria-roledescription') === 'message');
-        
-        // Process messages in sequence
-        const conversationTurns = [];
-        
-        allMessages.forEach(element => {
-            const isAssistant = element.classList.contains('role-assistant');
-            const sender = isAssistant ? 'assistant' : 'user';
-            const textDiv = element.querySelector('.flex.flex-col.gap-3');
-            const message = textDiv ? textDiv.textContent.trim() : '';
-            
-            if (!message) return;
-            
-            // Create a new turn
-            const turn = {
-                sender: sender,
-                messages: [message]
-            };
-            conversationTurns.push(turn);
-        });
-
-        return conversationTurns;
-    }''', shadow_root)
-
-    messages_info = await messages.jsonValue()
-
-    # return all messages after last user message
-    return messages_info[-1]
-
-
-async def send_and_measure(page, msg_input_element, message, typing_delay=0):
-    # Convert newlines to shift+enter equivalent to keep message as single input
-    message = message.replace('\n', '\r')
-    await msg_input_element.type(message, {'delay': typing_delay})
-    await page.keyboard.press('Enter')
-    start_time = time.time()
-
-    # Wait for response to appear and chatbot to finish typing
-    agent_replied = False
-    while not agent_replied:
-        message_info = await get_last_messages(page)
-        if message_info['sender'] == 'assistant':
-            response = message_info['messages']
-            agent_replied = True
-            break
-
-        # sleep for 3 seconds and throw if timeout passes
-        await asyncio.sleep(3)
-        if time.time() - start_time > CHATBOT_REPLY_TIMEOUT_SEC:
-            raise ValueError("Agent didn't reply in time")
-
-    end_time = time.time()
-
-    return {
-        'response': response if response != "No response found" else None,
-        'latency': round(end_time - start_time, 2),
-        'timestamp': datetime.now().isoformat()
-    }
 
 
 async def main():
