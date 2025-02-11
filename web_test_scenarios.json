@@ -1,6 +1,62 @@
 {
   "test_scenarios": [
     {
+      "scenario_id": "sonos_speaker_connection_issue",
+      "chatbot_url": "https://support.sonos.com/en/contact",
+      "agent_system_prompt": "You are a customer service agent for Sonos. You aim to help customers resolve their audio setup and connectivity issues with patience and clear guidance.",
+      "guidelines": "sonos_connection_issue.md",
+      "successful_outcome": "The agent has successfully resolved this issue if they: (1) helped identify why the speaker isn't connecting after the move, (2) walked the user through the proper setup process for a new WiFi network, (3) provided clear troubleshooting steps if initial setup fails, and (4) ensured the customer can successfully play music through their speaker. The user should demonstrate understanding of the setup process and confirm the speaker is working.",
+      "user_persona": {
+        "profession": "Product Manager",
+        "emotional_state": "frustrated and confused",
+        "chat_style": "somewhat tech-challenged, needs step-by-step guidance",
+        "context": "Recently moved apartments and can't get Sonos One speaker to work with new WiFi",
+        "initial_message": "Hi, I just moved to a new apartment and my Sonos speaker won't work anymore. I've tried turning it on and off but nothing's happening. Can you help?"
+      },
+      "mock_messages": [
+        {
+          "role": "user",
+          "content": "Hi, I just moved to a new apartment and my Sonos speaker won't work anymore. I've tried turning it on and off but nothing's happening. Can you help?",
+          "timestamp": "2024-01-27T14:00:00Z"
+        },
+        {
+          "role": "agent",
+          "content": "Hello! I understand you're having trouble with your Sonos One after moving. This is actually quite common since the speaker needs to be connected to your new WiFi network. First, could you tell me if you see any lights on your speaker, and have you downloaded the Sonos app on your phone?",
+          "timestamp": "2024-01-27T14:00:05Z"
+        },
+        {
+          "role": "user",
+          "content": "Yes, there's a white light blinking on top. And I have the app but it keeps saying 'no speakers found' when I open it.",
+          "timestamp": "2024-01-27T14:00:25Z"
+        },
+        {
+          "role": "agent",
+          "content": "Thanks for that information. The blinking white light means your speaker is ready to be set up. We'll need to connect it to your new WiFi network. Could you open the Sonos app and tap on Settings > System > Add Product? This will start the setup process for your new network.",
+          "timestamp": "2024-01-27T14:00:35Z"
+        },
+        {
+          "role": "user",
+          "content": "Okay, I'm in settings but I don't see 'Add Product'. The app just keeps searching and saying no speakers found...",
+          "timestamp": "2024-01-27T14:00:55Z"
+        },
+        {
+          "role": "agent",
+          "content": "Let's try a quick reset first. On your Sonos One, please press and hold both the Play/Pause button and the Join button (the circle button) until the light flashes orange and white. This should take about 10 seconds. Once you see that, let me know and we'll proceed with the setup.",
+          "timestamp": "2024-01-27T14:01:05Z"
+        },
+        {
+          "role": "user",
+          "content": "Okay, I did that and now the light is flashing orange and white. What's next?",
+          "timestamp": "2024-01-27T14:01:25Z"
+        },
+        {
+          "role": "agent",
+          "content": "Perfect! Now close and reopen the Sonos app. You should now see a prompt to set up a new speaker. If not, go to Settings > System > Add Product. Follow the prompts to connect to your new WiFi network. Would you like me to walk you through each step as you go?",
+          "timestamp": "2024-01-27T14:01:35Z"
+        }
+      ]
+    },
+    {
       "scenario_id": "refund_policy_question",
       "chatbot_url": "https://decagon.ai/embed/notion",
       "agent_system_prompt": "You are a customer service agent for Notion. You are doing your best to resolve users' issues as smoothly as possible.",
