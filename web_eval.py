@@ -16,6 +16,7 @@ from core.providers.openai import OpenAIProvider
 from core.utils.generate_report import generate_test_results_report
 
 CHATBOT_REPLY_TIMEOUT_SEC = 60
+CHATBOT_NEW_MESSAGE_TIMEOUT_SEC = 3
 FAQS_FOLDER = "faqs"
 
 api_key = os.getenv("OPENAI_API_KEY")
@@ -226,10 +227,10 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
         await asyncio.sleep(3)
 
         # check if chat is already running, e.g. https://substack.com/support
-        chat_status = await self.check_if_support_chat_running()
+        # chat_status = await self.check_if_support_chat_running()
 
         # TODO REMOVE, just mock for development
-        # chat_status = ChatStatus(status="exists", btn_name="Start a chat")
+        chat_status = ChatStatus(status="exists", btn_name="Start a chat")
 
         # TODO use shadow root to find the chat button?
         if chat_status.status == "running":
@@ -275,26 +276,7 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
             return elements.length;
         }''', shadow_root)
 
-
-    async def get_last_messages(self):
-        # Get initial message count with more specific targeting
-        initial_message_count = await self.count_agent_msgs()
-
-        curr_message_count = initial_message_count
-        current_time = time.time()
-        while initial_message_count >= curr_message_count and time.time() - current_time < CHATBOT_REPLY_TIMEOUT_SEC:
-            await asyncio.sleep(3)
-            curr_message_count = await self.count_agent_msgs()
-
-        # wait for the agent to finish typing
-        # TODO build a smart mechanism that waits until text stops changing + no spinner is shown
-        await asyncio.sleep(5)
-
-        if initial_message_count >= curr_message_count:
-            raise ValueError(f"Agent didn't reply after time {
-                            CHATBOT_REPLY_TIMEOUT_SEC} seconds")
-
-        # Get all messages after waiting
+    async def get_conversation_history(self):
         shadow_root = await self.get_shadow_root() if self.shadow_root_selector else None
         messages = await self.page.evaluateHandle('''(container) => {
             // If container is provided (shadow root case), use it as root
@@ -332,6 +314,25 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
         }''', shadow_root)
 
         messages_info = await messages.jsonValue()
+        return messages_info
+
+    async def wait_for_agent_to_finish_typing(self):
+        initial_message_count = await self.count_agent_msgs()
+        curr_message_count = initial_message_count   
+        time_since_started_typing = time.time()
+        while initial_message_count >= curr_message_count and time.time() - time_since_started_typing < CHATBOT_REPLY_TIMEOUT_SEC:
+            await asyncio.sleep(3)
+            curr_message_count = await self.count_agent_msgs()
+
+        if initial_message_count >= curr_message_count:
+            raise ValueError(f"Agent didn't reply after time {CHATBOT_REPLY_TIMEOUT_SEC} seconds")
+
+        await asyncio.sleep(CHATBOT_NEW_MESSAGE_TIMEOUT_SEC)
+
+    async def get_last_messages(self):
+        # Get initial message count with more specific targeting
+        await self.wait_for_agent_to_finish_typing()
+        messages_info = await self.get_conversation_history()
 
         # return all messages after last user message
         return messages_info[-1]
@@ -445,8 +446,6 @@ Generate your next response for the following conversation so I can send it to t
                     result = await chat_session_manager.send_and_measure(msg_input_element, user_response.response_content
                                                                          # , typing_delay=10
                                                                          )
-
-                    time.sleep(3)
 
                     agent_response = result['response']
                     if not agent_response:
