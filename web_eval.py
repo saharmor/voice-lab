@@ -35,7 +35,6 @@ issue_resolved_tool = {
 - User says "thank you" with completion indication
 - User confirms understanding of next steps
 - User agrees to form submission or specialist help
-- User says "yes" to form/specialist assistance
 
 2. IMPLICIT resolution:
 - User shows satisfaction AND confirms next steps
@@ -43,19 +42,21 @@ issue_resolved_tool = {
 - User indicates no further needs
 - Form submission/specialist stage reached
 - Contact form presented without objection
+- Assistant asks if there are further questions/needs
+- Assistant asks "Is there anything else I can help with?"
+- Assistant summarizes help and asks about more questions
 
 3. NOT resolved if:
 - User still asking questions
 - User seems confused
-- Info incomplete
-- Actions not acknowledged
-- User declines form/specialist help""",
+- User declines form/specialist help
+- User responds to "anything else?" with new questions""",
         "parameters": {
             "type": "object",
             "properties": {
                 "issue_resolved": {
                     "type": "boolean",
-                    "description": "True if user satisfied AND acknowledged next steps OR agreed to form/specialist"
+                    "description": "True if: user satisfied AND acknowledged next steps, OR agreed to form/specialist, OR assistant asks about further questions/needs"
                 },
                 "reply_msg": {
                     "type": "string", 
@@ -64,7 +65,7 @@ issue_resolved_tool = {
                 "confirmation_type": {
                     "type": "string",
                     "enum": ["explicit", "implicit", "none"],
-                    "description": "explicit: Clear agreement/completion, implicit: Positive response/form stage, none: Pending"
+                    "description": "explicit: Clear agreement/completion/positive response to further questions, implicit: Positive response/form stage/assistant asking about further needs, none: Pending"
                 }
             },
             "required": ["issue_resolved", "confirmation_type", "reply_msg"]
@@ -252,9 +253,11 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
         # check if chat is already running, e.g. https://substack.com/support
         chat_status = await self.check_if_support_chat_running()
 
+
+
         # TODO REMOVE, just mock for development
-        chat_status = ChatStatus(status="exists", btn_name="Start a chat")
-        # chat_status = ChatStatus(status="running")
+        # chat_status = ChatStatus(status="exists", btn_name="Start a chat") # sierra
+        # chat_status = ChatStatus(status="running") # decagon
 
         if chat_status.status == "running":
             print("Chat is already running")
@@ -300,63 +303,83 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
 
     async def get_conversation_history(self, get_last_msg=False):
         shadow_root = await self.get_shadow_root() if self.shadow_root_selector else None
-        messages = await self.page.evaluateHandle('''function(container) {                                                                                 
-             // If container is provided (shadow root case), use it as root
-            // Otherwise use document as root
+        messages = await self.page.evaluateHandle('''(container) => {
             const root = container || document;
             
-            // First try to find messages in Sierra-style chat
-            let messageContainer = root.querySelector('ol');
-            if (messageContainer) {
-                const allMessages = Array.from(messageContainer.querySelectorAll('li'))
-                    .filter(li => li.getAttribute('aria-roledescription') === 'message');
-                
-                return allMessages.map(element => {
-                    const isAssistant = element.classList.contains('role-assistant');
-                    const textDiv = element.querySelector('.flex.flex-col.gap-3');
-                    return {
-                        sender: isAssistant ? 'assistant' : 'user',
-                        messages: [textDiv ? textDiv.textContent.trim() : '']
-                    };
-                }).filter(turn => turn.messages[0]);
-            }
-            
-            // For Decagon-style chat
-            const messageContainer = root.querySelector("#chatbot-container");
-            if (messageContainer) {
-                // Get all message items including both user and assistant messages
-                const allMessages = Array.from(messageContainer.querySelectorAll("[role=listitem], .flex.undefined"));
-                
-                return allMessages.map(function(element) {
-                    // Check for spinner (typing indicator)
-                    const spinner = element.querySelector(".spinner");
-                    if (spinner) {
+            function extractMessages() {
+                // Try Sierra chat first
+                const messageContainer = root.querySelector('ol');
+                if (messageContainer) {
+                    const allMessages = Array.from(messageContainer.querySelectorAll('li[aria-roledescription="message"]'));
+                    
+                    const messages = allMessages.map(element => {
+                        const isAssistant = element.classList.contains('role-assistant');
+                        const textDiv = element.querySelector('.flex.flex-col.gap-3');
+                        
+                        // Check for typing indicator in Sierra
+                        const typingIndicator = element.querySelector('[aria-busy="false"][aria-live="polite"] svg, .animate-typing-indicator-dot');
+                        if (typingIndicator) {
+                            console.log('Sierra spinner found');
+                            return {
+                                sender: 'assistant',
+                                thinking: true
+                            };
+                        }
+                        
+                        let messageText = '';
+                        if (textDiv) {
+                            const paragraphs = Array.from(textDiv.querySelectorAll('p')).map(p => p.textContent.trim());
+                            const listItems = Array.from(textDiv.querySelectorAll('li')).map(li => '• ' + li.textContent.trim());
+                            messageText = [...paragraphs, ...listItems].filter(text => text).join('\\n');
+                        }
+                        
                         return {
-                            sender: "assistant",
-                            typing: true
+                            sender: isAssistant ? 'assistant' : 'user',
+                            messages: messageText ? [messageText] : []
                         };
-                    }
+                    }).filter(turn => turn.messages?.length > 0 || turn.thinking);
+
+                    return messages;
+                }
+                
+                // Try Decagon chat
+                const decagonContainer = root.querySelector('#chatbot-container');
+                if (decagonContainer) {
+                    const allMessages = Array.from(decagonContainer.querySelectorAll('[role=listitem], .flex.undefined'));
+                    const messages = allMessages.map(element => {
+                        // Check for spinner (typing indicator)
+                        const spinner = element.querySelector('.spinner');
+                        if (spinner) {
+                            return {
+                                sender: 'assistant',
+                                thinking: true
+                            };
+                        }
+                        
+                        // Get message sender type from aria-label
+                        const ariaLabel = element.getAttribute('aria-label');
+                        const isAssistant = ariaLabel === 'Message from assistant';
+                        
+                        // Get message text - get all paragraphs and join them
+                        const textElements = element.querySelectorAll('.widget-chat-bubble-text span, .widget-chat-bubble-text p');
+                        const messageText = Array.from(textElements)
+                            .map(el => el.textContent.trim())
+                            .join('\\n')
+                            .trim();
+                        
+                        return {
+                            sender: isAssistant ? 'assistant' : 'user',
+                            messages: [messageText]
+                        };
+                    }).filter(turn => (turn.messages && turn.messages[0]) || turn.thinking);
                     
-                    // Get message sender type from aria-label
-                    const ariaLabel = element.getAttribute("aria-label");
-                    const isAssistant = ariaLabel === "Message from assistant";
-                    
-                    // Get message text - get all paragraphs and join them
-                    const textElements = element.querySelectorAll(".widget-chat-bubble-text span, .widget-chat-bubble-text p");
-                    const messageText = Array.from(textElements)
-                        .map(function(el) { return el.textContent.trim(); })
-                        .join("\\n")
-                        .trim();
-                    
-                    return {
-                        sender: isAssistant ? "assistant" : "user",
-                        messages: [messageText]
-                    };
-                }).filter(function(turn) { 
-                    return (turn.messages && turn.messages[0]) || turn.typing;
-                });
+                    return messages;
+                }
+                
+                return [];
             }
-            return [];
+
+            return extractMessages();
         }''', shadow_root)
 
         messages_info = await messages.jsonValue()
@@ -371,16 +394,20 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
     async def wait_for_agent_to_finish_replying(self, get_last_msg=False):
         # TODO store latencies for (a) started typing (b) started sending/streaming message and (c) finished sending/streaming message
         # wait for the agent to start typing
-        print(f"{datetime.now().strftime('%H:%M:%S')} - Waiting for agent to start typing")
+        print(f"{datetime.now().strftime('%H:%M:%S')} - Waiting for agent to start thinking")
         last_msg = await self.get_conversation_history(get_last_msg=True)
         time_since_started_typing = time.time()
-        is_typing = False
-        while last_msg['sender'] == 'user' and time.time() - time_since_started_typing < CHATBOT_REPLY_TIMEOUT_SEC:
-            await asyncio.sleep(1)
-            last_msg = await self.get_conversation_history(get_last_msg=True)
-            if not is_typing and 'typing' in last_msg and last_msg['typing']:
-                print(f"{datetime.now().strftime('%H:%M:%S')} - Agent started typing")
-                is_typing = True
+        is_agent_thinking = False if 'thinking' not in last_msg else last_msg['thinking']
+
+        if is_agent_thinking:
+            print(f"{datetime.now().strftime('%H:%M:%S')} - Agent started typing")
+        else:
+            while last_msg['sender'] == 'user' and time.time() - time_since_started_typing < CHATBOT_REPLY_TIMEOUT_SEC:
+                await asyncio.sleep(1)
+                last_msg = await self.get_conversation_history(get_last_msg=True)
+                if not is_agent_thinking and 'thinking' in last_msg and last_msg['thinking']:
+                    print(f"{datetime.now().strftime('%H:%M:%S')} - Agent started typing")
+                    is_agent_thinking = True
 
         if last_msg['sender'] == 'user':
             raise ValueError(f"Agent didn't reply after time {CHATBOT_REPLY_TIMEOUT_SEC} seconds")
@@ -389,16 +416,16 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
         # sleep for a bit to see if agent keeps on generating text
         await asyncio.sleep(1)
         curr_msg = await self.get_conversation_history(get_last_msg=True)
-        is_typing = ('typing' in curr_msg and curr_msg['typing'])
+        is_agent_typing = ('thinking' in curr_msg and curr_msg['thinking'])
         try:
             # keep waiting as long as (a) agent is typing or (b) agent has finished typing but want to ensure not more messages are coming (c) timout hasn't elapsed
-            while (is_typing or (not is_typing and ('messages' in curr_msg and 'messages' not in last_msg))) or \
+            while (is_agent_typing or (not is_agent_typing and ('messages' in curr_msg and 'messages' not in last_msg))) or \
                 (last_msg['messages'][-1] != curr_msg['messages'][-1]) and \
                   time.time() - time_since_started_typing < CHATBOT_REPLY_TIMEOUT_SEC:
                 last_msg = await self.get_conversation_history(get_last_msg=True)
                 await asyncio.sleep(1)
                 curr_msg = await self.get_conversation_history(get_last_msg=True)
-                is_typing = ('typing' in curr_msg and curr_msg['typing'])
+                is_agent_typing = ('thinking' in curr_msg and curr_msg['thinking'])
 
             print(f"{datetime.now().strftime('%H:%M:%S')} - Agent finished typing\n\n")
 
@@ -453,6 +480,7 @@ async def run_tests(tests_to_run_count=999, verbose=False):
     browser = await launch(headless=False)
     try:
         for scenario in read_test_scenarios()[:tests_to_run_count]:
+            # TODO REMOVE
             if scenario["scenario_id"] == "refund_policy_question":
                 continue
             
@@ -552,6 +580,7 @@ Generate your next response for the following conversation so I can send it to t
     finally:
         await browser.close()
 
+    exit()
     print(f"\nEvaluating {len(test_results)} scenarios")
     test_results_report = {}
     for scenario, conversation_history, reply_latencies in test_results:
