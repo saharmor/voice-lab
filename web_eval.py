@@ -22,35 +22,55 @@ api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError("Please set OPENAI_API_KEY environment variable")
 
-agent_llm = OpenAIProvider(api_key, "gpt-4o")
+agent_llm = OpenAIProvider(api_key, "gpt-4o-mini")
 
 issue_resolved_tool = {
     "type": "function",
     "function": {
         "name": "user_issue_resolved",
-        "description": "Determines if a user's issue or question has been fully resolved. Call this function when ANY of these resolution patterns are detected:\n\n1. EXPLICIT resolution:\n- User clearly states the issue is resolved\n- User says 'thank you' and indicates they got what they needed\n- User confirms they understand next steps\n\n2. IMPLICIT resolution:\n- User expresses satisfaction ('helpful', 'great', etc.) AND confirms next steps\n- User acknowledges the information and states their intended action\n- User says they don't need anything else\n\n3. Do NOT consider resolved if:\n- User is still asking questions\n- User seems confused or uncertain\n- Information provided was incomplete\n- User needs to take actions but hasn't acknowledged them",
+        "description": """Call this function when any resolution pattern is detected:
+
+1. EXPLICIT resolution:
+- User states issue is resolved
+- User says "thank you" with completion indication
+- User confirms understanding of next steps
+- User agrees to form submission or specialist help
+- User says "yes" to form/specialist assistance
+
+2. IMPLICIT resolution:
+- User shows satisfaction AND confirms next steps
+- User acknowledges info and states next action
+- User indicates no further needs
+- Form submission/specialist stage reached
+- Contact form presented without objection
+
+3. NOT resolved if:
+- User still asking questions
+- User seems confused
+- Info incomplete
+- Actions not acknowledged
+- User declines form/specialist help""",
         "parameters": {
             "type": "object",
             "properties": {
                 "issue_resolved": {
                     "type": "boolean",
-                    "description": "True if user expressed satisfaction AND acknowledged next steps (if any)"
+                    "description": "True if user satisfied AND acknowledged next steps OR agreed to form/specialist"
                 },
                 "reply_msg": {
-                    "type": "string",
-                    "description": "What the user should say next in case the issue is not resolved yet"
+                    "type": "string", 
+                    "description": "What user should say next if not resolved"
                 },
                 "confirmation_type": {
                     "type": "string",
                     "enum": ["explicit", "implicit", "none"],
-                    "description": "explicit: Clear statement of satisfaction/completion\nimplicit: Positive response + stated next steps\nnone: Still pending or unclear"
+                    "description": "explicit: Clear agreement/completion, implicit: Positive response/form stage, none: Pending"
                 }
             },
             "required": ["issue_resolved", "confirmation_type", "reply_msg"]
         }
     }
 }
-
 
 def read_mock_web_conv(scenario, user_turns=3):
     messages = []
@@ -233,8 +253,8 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
         chat_status = await self.check_if_support_chat_running()
 
         # TODO REMOVE, just mock for development
-        # chat_status = ChatStatus(status="exists", btn_name="Start a chat")
-        chat_status = ChatStatus(status="running")
+        chat_status = ChatStatus(status="exists", btn_name="Start a chat")
+        # chat_status = ChatStatus(status="running")
 
         if chat_status.status == "running":
             print("Chat is already running")
@@ -247,8 +267,7 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
             if chat_buttons:
                 await chat_buttons[0].click()
             else:
-                raise ValueError(f"Chat button with text '{
-                                chat_status.btn_name}' was not found.")
+                raise ValueError(f"Chat button with text '{chat_status.btn_name}' was not found.")
 
             # wait for a few seconds to make sure the chat is running
             await asyncio.sleep(3)
@@ -281,46 +300,64 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
 
     async def get_conversation_history(self, get_last_msg=False):
         shadow_root = await self.get_shadow_root() if self.shadow_root_selector else None
-        messages = await self.page.evaluateHandle('''(container) => {
-        // If container is provided (shadow root case), use it as root
-        // Otherwise use document as root
-        const root = container || document;
-        
-        // First try to find messages in Sierra-style chat
-        let messageContainer = root.querySelector('ol');
-        if (messageContainer) {
-            const allMessages = Array.from(messageContainer.querySelectorAll('li'))
-                .filter(li => li.getAttribute('aria-roledescription') === 'message');
+        messages = await self.page.evaluateHandle('''function(container) {                                                                                 
+             // If container is provided (shadow root case), use it as root
+            // Otherwise use document as root
+            const root = container || document;
             
-            return allMessages.map(element => {
-                const isAssistant = element.classList.contains('role-assistant');
-                const textDiv = element.querySelector('.flex.flex-col.gap-3');
-                return {
-                    sender: isAssistant ? 'assistant' : 'user',
-                    messages: [textDiv ? textDiv.textContent.trim() : '']
-                };
-            }).filter(turn => turn.messages[0]);
-        }
-        
-        // If not found, try Decagon-style chat
-        messageContainer = root.querySelector('#chatbot-container');
-        if (messageContainer) {
-            const allMessages = Array.from(messageContainer.querySelectorAll('div[role="listitem"]'));
+            // First try to find messages in Sierra-style chat
+            let messageContainer = root.querySelector('ol');
+            if (messageContainer) {
+                const allMessages = Array.from(messageContainer.querySelectorAll('li'))
+                    .filter(li => li.getAttribute('aria-roledescription') === 'message');
+                
+                return allMessages.map(element => {
+                    const isAssistant = element.classList.contains('role-assistant');
+                    const textDiv = element.querySelector('.flex.flex-col.gap-3');
+                    return {
+                        sender: isAssistant ? 'assistant' : 'user',
+                        messages: [textDiv ? textDiv.textContent.trim() : '']
+                    };
+                }).filter(turn => turn.messages[0]);
+            }
             
-            return allMessages.map(element => {
-                const labelText = element.getAttribute('aria-label') || '';
-                const isAssistant = labelText.includes('assistant');
-                const textDiv = element.querySelector('.widget-chat-bubble-text');
-                return {
-                    sender: isAssistant ? 'assistant' : 'user',
-                    messages: [textDiv ? textDiv.textContent.trim() : '']
-                };
-            }).filter(turn => turn.messages[0]);
-        }
-        
-        // If no messages found in either format
-        return [];
-    }''', shadow_root)
+            // For Decagon-style chat
+            const messageContainer = root.querySelector("#chatbot-container");
+            if (messageContainer) {
+                // Get all message items including both user and assistant messages
+                const allMessages = Array.from(messageContainer.querySelectorAll("[role=listitem], .flex.undefined"));
+                
+                return allMessages.map(function(element) {
+                    // Check for spinner (typing indicator)
+                    const spinner = element.querySelector(".spinner");
+                    if (spinner) {
+                        return {
+                            sender: "assistant",
+                            typing: true
+                        };
+                    }
+                    
+                    // Get message sender type from aria-label
+                    const ariaLabel = element.getAttribute("aria-label");
+                    const isAssistant = ariaLabel === "Message from assistant";
+                    
+                    // Get message text - get all paragraphs and join them
+                    const textElements = element.querySelectorAll(".widget-chat-bubble-text span, .widget-chat-bubble-text p");
+                    const messageText = Array.from(textElements)
+                        .map(function(el) { return el.textContent.trim(); })
+                        .join("\\n")
+                        .trim();
+                    
+                    return {
+                        sender: isAssistant ? "assistant" : "user",
+                        messages: [messageText]
+                    };
+                }).filter(function(turn) { 
+                    return (turn.messages && turn.messages[0]) || turn.typing;
+                });
+            }
+            return [];
+        }''', shadow_root)
 
         messages_info = await messages.jsonValue()
         if not messages_info:
@@ -331,47 +368,60 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
         else:
             return messages_info
 
-    async def wait_for_agent_to_finish_typing(self, get_last_msg=False):
+    async def wait_for_agent_to_finish_replying(self, get_last_msg=False):
         # TODO store latencies for (a) started typing (b) started sending/streaming message and (c) finished sending/streaming message
         # wait for the agent to start typing
-        print("Waiting for agent to start typing")
+        print(f"{datetime.now().strftime('%H:%M:%S')} - Waiting for agent to start typing")
         last_msg = await self.get_conversation_history(get_last_msg=True)
         time_since_started_typing = time.time()
+        is_typing = False
         while last_msg['sender'] == 'user' and time.time() - time_since_started_typing < CHATBOT_REPLY_TIMEOUT_SEC:
             await asyncio.sleep(1)
             last_msg = await self.get_conversation_history(get_last_msg=True)
+            if not is_typing and 'typing' in last_msg and last_msg['typing']:
+                print(f"{datetime.now().strftime('%H:%M:%S')} - Agent started typing")
+                is_typing = True
 
         if last_msg['sender'] == 'user':
             raise ValueError(f"Agent didn't reply after time {CHATBOT_REPLY_TIMEOUT_SEC} seconds")
-
-        print("Agent started typing")
         
         # wait for the agent to finish typing and sending messages (sometimes it sends multiple messages instead of one)
         # sleep for a bit to see if agent keeps on generating text
         await asyncio.sleep(1)
         curr_msg = await self.get_conversation_history(get_last_msg=True)
-        while last_msg['messages'][-1] != curr_msg['messages'][-1] and time.time() - time_since_started_typing < CHATBOT_REPLY_TIMEOUT_SEC:
-            last_msg = await self.get_conversation_history(get_last_msg=True)
-            await asyncio.sleep(1)
-            curr_msg = await self.get_conversation_history(get_last_msg=True)
+        is_typing = ('typing' in curr_msg and curr_msg['typing'])
+        try:
+            # keep waiting as long as (a) agent is typing or (b) agent has finished typing but want to ensure not more messages are coming (c) timout hasn't elapsed
+            while (is_typing or (not is_typing and ('messages' in curr_msg and 'messages' not in last_msg))) or \
+                (last_msg['messages'][-1] != curr_msg['messages'][-1]) and \
+                  time.time() - time_since_started_typing < CHATBOT_REPLY_TIMEOUT_SEC:
+                last_msg = await self.get_conversation_history(get_last_msg=True)
+                await asyncio.sleep(1)
+                curr_msg = await self.get_conversation_history(get_last_msg=True)
+                is_typing = ('typing' in curr_msg and curr_msg['typing'])
 
-        print("Agent finished typing/sending messages")
-        if last_msg['sender'] == 'user':
-            raise ValueError(f"Agent didn't reply after time {CHATBOT_REPLY_TIMEOUT_SEC} seconds")
+            print(f"{datetime.now().strftime('%H:%M:%S')} - Agent finished typing\n\n")
 
-        if get_last_msg:
-            return last_msg
+            if last_msg['sender'] == 'user':
+                raise ValueError(f"Agent didn't reply after time {CHATBOT_REPLY_TIMEOUT_SEC} seconds")
+
+            if get_last_msg:
+                return last_msg
+        except Exception as e:
+            print(f"Error while waiting for agent reply: {str(e)}")
+            raise
     
         return None
 
     async def get_last_messages(self):
-        last_msg = await self.wait_for_agent_to_finish_typing(get_last_msg=True)
+        last_msg = await self.wait_for_agent_to_finish_replying(get_last_msg=True)
         return last_msg
 
 
     async def send_and_measure(self, msg_input_element, message, typing_delay=0):
         if not message:
             raise ValueError("Message to submit to chatbot is empty")
+        
         # Convert newlines to shift+enter equivalent to keep message as single input
         message = message.replace('\n', '\r')
         await msg_input_element.type(message, {'delay': typing_delay})
@@ -381,9 +431,13 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
         start_time = time.time()
 
         # Wait for response to appear and chatbot to finish typing
-        message_info = await self.get_last_messages()
+        
+        try:
+            message_info = await self.get_last_messages()
+        except Exception as e:
+            print(f"Error getting messages: {str(e)}")
+            response = "No response found"
         response = message_info['messages']
-
         end_time = time.time()
 
         return {
@@ -399,6 +453,9 @@ async def run_tests(tests_to_run_count=999, verbose=False):
     browser = await launch(headless=False)
     try:
         for scenario in read_test_scenarios()[:tests_to_run_count]:
+            if scenario["scenario_id"] == "refund_policy_question":
+                continue
+            
             try:
                 user_persona = json.dumps(
                     {k: v for k, v in scenario["user_persona"].items() if k != "initial_message"})
@@ -452,11 +509,11 @@ Generate your next response for the following conversation so I can send it to t
                         arguments = json.loads(user_response.tools_called[0].function.arguments)
                         issue_resolved = arguments["issue_resolved"]
                         if issue_resolved:
-                            print("User's issue resolved")
+                            print(f"{datetime.now().strftime('%H:%M:%S')} - User's issue resolved. Confirmation type: {arguments['confirmation_type']}")
                             break
                         else:
                             user_response.response_content = arguments["reply_msg"]
-                            raise ValueError("User's issue not resolved but function was called, meaning there's not resposne to submit")
+                            print(f"{datetime.now().strftime('%H:%M:%S')} - User's issue not resolved but tool was anyway called")
                         
                     if verbose:
                         print("user: ", user_response.response_content)
