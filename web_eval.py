@@ -22,56 +22,41 @@ api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError("Please set OPENAI_API_KEY environment variable")
 
-agent_llm = OpenAIProvider(api_key, "gpt-4o-mini")
+agent_llm = OpenAIProvider(api_key, "gpt-4o")
 
 issue_resolved_tool = {
     "type": "function",
     "function": {
         "name": "user_issue_resolved",
-        "description": """Call this function when any resolution pattern is detected:
-
-1. EXPLICIT resolution:
-- User states issue is resolved
-- User says "thank you" with completion indication
-- User confirms understanding of next steps
-- User agrees to form submission or specialist help
-
-2. IMPLICIT resolution:
-- User shows satisfaction AND confirms next steps
-- User acknowledges info and states next action
-- User indicates no further needs
-- Form submission/specialist stage reached
-- Contact form presented without objection
-- Assistant asks if there are further questions/needs
-- Assistant asks "Is there anything else I can help with?"
-- Assistant summarizes help and asks about more questions
-
-3. NOT resolved if:
-- User still asking questions
-- User seems confused
-- User declines form/specialist help
-- User responds to "anything else?" with new questions""",
+        "description": (
+            "Call this function when the conversation clearly reaches resolution, explicitly or implicitly."
+            "Resolution is confirmed explicitly (e.g., user states the issue is resolved, thanks with closure, "
+            "confirms next steps, or agrees to handoff) or implicitly (e.g., user indicates they'll try the instructions, "
+            "acknowledges next steps, or no further questions arise). "
+            "If the user continues asking questions or seems confused, do not call this function."
+        ),
         "parameters": {
             "type": "object",
             "properties": {
                 "issue_resolved": {
                     "type": "boolean",
-                    "description": "True if: user satisfied AND acknowledged next steps, OR agreed to form/specialist, OR assistant asks about further questions/needs"
+                    "description": "True if the issue is resolved (explicit or implicit), otherwise false."
                 },
                 "reply_msg": {
-                    "type": "string", 
-                    "description": "What user should say next if not resolved"
+                    "type": "string",
+                    "description": "Next message if not resolved; empty if resolved."
                 },
                 "confirmation_type": {
                     "type": "string",
                     "enum": ["explicit", "implicit", "none"],
-                    "description": "explicit: Clear agreement/completion/positive response to further questions, implicit: Positive response/form stage/assistant asking about further needs, none: Pending"
+                    "description": "Indicates whether confirmation is explicit, implicit, or pending."
                 }
             },
-            "required": ["issue_resolved", "confirmation_type", "reply_msg"]
+            "required": ["issue_resolved", "confirmation_type"]
         }
     }
 }
+
 
 def read_mock_web_conv(scenario, user_turns=3):
     messages = []
@@ -253,8 +238,6 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
         # check if chat is already running, e.g. https://substack.com/support
         chat_status = await self.check_if_support_chat_running()
 
-
-
         # TODO REMOVE, just mock for development
         # chat_status = ChatStatus(status="exists", btn_name="Start a chat") # sierra
         # chat_status = ChatStatus(status="running") # decagon
@@ -400,7 +383,7 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
         is_agent_thinking = False if 'thinking' not in last_msg else last_msg['thinking']
 
         if is_agent_thinking:
-            print(f"{datetime.now().strftime('%H:%M:%S')} - Agent started typing")
+            print(f"{datetime.now().strftime('%H:%M:%S')} - Agent started thinking")
         else:
             while last_msg['sender'] == 'user' and time.time() - time_since_started_typing < CHATBOT_REPLY_TIMEOUT_SEC:
                 await asyncio.sleep(1)
@@ -463,7 +446,7 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
             message_info = await self.get_last_messages()
         except Exception as e:
             print(f"Error getting messages: {str(e)}")
-            response = "No response found"
+
         response = message_info['messages']
         end_time = time.time()
 
@@ -481,8 +464,8 @@ async def run_tests(tests_to_run_count=999, verbose=False):
     try:
         for scenario in read_test_scenarios()[:tests_to_run_count]:
             # TODO REMOVE
-            if scenario["scenario_id"] == "refund_policy_question":
-                continue
+            # if scenario["scenario_id"] != "refund_policy_question":
+            #     continue
             
             try:
                 user_persona = json.dumps(
@@ -580,7 +563,6 @@ Generate your next response for the following conversation so I can send it to t
     finally:
         await browser.close()
 
-    exit()
     print(f"\nEvaluating {len(test_results)} scenarios")
     test_results_report = {}
     for scenario, conversation_history, reply_latencies in test_results:

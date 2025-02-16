@@ -14,6 +14,9 @@ def get_metric_success_indicator(metric):
 
 
 def generate_test_results_report(tests_run_result: Dict[str, TestResult]):
+    if not tests_run_result:
+        return
+    
     # TODO fix, pig
     test_type = "llm_testing" if "start_timestamp" in tests_run_result[list(
         tests_run_result.keys())[0]]['result'].conversation_history[0] else "web_eval"
