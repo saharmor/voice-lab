@@ -17,11 +17,9 @@ def generate_test_results_report(tests_run_result: Dict[str, TestResult]):
     if not tests_run_result:
         return
     
-    # TODO fix, pig
     test_type = "llm_testing" if "start_timestamp" in tests_run_result[list(
         tests_run_result.keys())[0]]['result'].conversation_history[0] else "web_eval"
 
-    # Helper function to generate a consistent color based on test name
     def get_color_for_test(test_name):
         # Convert test name to a number using sum of character codes
         hash_val = sum(ord(c) for c in test_name)

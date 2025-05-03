@@ -50,7 +50,6 @@ class LLMConversationEvaluator(ConversationEvaluator):
         return metrics_str
 
     def _get_evaluator_system_prompt(self) -> str:
-        # TODO: use OpenAI's structured output mode for if typeof(self.llm) == OpenAIProvider
         return f"""{self.eval_system_prompt}
 For each metric, provide a score according to the scoring format and an explanation of your evaluation.
 success_flag is a boolean value that indicates whether the metric was achieved. range_score is a number between 0 and 10 that indicates the degree to which the metric was achieved.
@@ -78,7 +77,6 @@ success_flag is a boolean value that indicates whether the metric was achieved. 
 
     def _format_conversation(self, history: List[Dict[str, str]], persona: CalleePersona) -> str:
         formatted_history = ""
-        # TODO check if works for llm_testing
         for message in history:
             formatted_history += f"{message['role']}: {message['content']}\n"
 

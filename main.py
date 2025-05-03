@@ -12,25 +12,19 @@ def suppress_output(all_output=False):
     import os
     from tqdm import tqdm
 
-    # Suppress warnings
     warnings.filterwarnings("ignore")
-
-    # Suppress logging messages
     logging.getLogger().setLevel(logging.CRITICAL)
-
-    # Suppress PyTorch Lightning version warning
     os.environ["PYTORCH_LIGHTNING_SUPPRESS"] = "1"
     os.environ["LIGHTNING_SUPPRESS_LOGGING"] = "1"
 
     if all_output:
-        # Redirect stdout to suppress tqdm output
         import sys
         class DummyFile(object):
             def write(self, x): pass
             def flush(self): pass
 
-        sys.stdout = DummyFile()  # Suppress tqdm
-        tqdm.monitor_interval = 0  # Disable tqdm warning
+        sys.stdout = DummyFile()
+        tqdm.monitor_interval = 0
 
 
 suppress_output(all_output=False)

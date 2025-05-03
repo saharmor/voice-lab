@@ -25,7 +25,7 @@ class MetricResult(BaseModel):
     eval_output_type: str = Field(description="either 'success_flag' or 'range_score'")
     eval_output: str = Field(description="boolean if success flag or numeric score if range_score")
     eval_output_success_threshold: int = Field(description="threshold for success if eval_output_type is range_score")
-    reasoning: str = Field(description="explanation of how the output was determined") # TODO consider using CoT for better reasoning https://platform.openai.com/docs/guides/structured-outputs#chain-of-thought
+    reasoning: str = Field(description="explanation of how the output was determined")
     evidence: str = Field(description="evidence/quotes from the conversation history supporting your output score. Can be empty if no evidence is needed.")
 
 
@@ -57,15 +57,9 @@ class ConversationEndStatus:
 
 class LLMResponse:
     def __init__(self, response_content: str, tools_called):
-        """
-        Args:
-            response_content: The actual response text from the LLM
-            end_status: The conversation end status
-        """
         self.response_content = response_content
         self.tools_called = tools_called
 
-# TODO get rid of all 'callee' and 'agent' literal strings
 class EntitySpeaking(Enum):
     """Represents the entity speaking in the conversation"""
     VOICE_AGENT = "voice_agent"
