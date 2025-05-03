@@ -116,10 +116,10 @@ def eval_test_scenario(scenario, conversation_history):
         name="User",
         description=scenario["user_persona"]["context"],
         role=scenario["user_persona"]["profession"],
-        traits=[],  # Not provided in user_persona
-        mood=Mood.IMPATIENT,  # Not provided in user_persona
+        traits=[],
+        mood=Mood.IMPATIENT,
         initial_message=scenario["user_persona"]["initial_message"],
-        response_style=None,  # Not provided in user_persona
+        response_style=None,
         additional_context={
             "chat_style": scenario["user_persona"]["chat_style"],
             "emotional_state": scenario["user_persona"]["emotional_state"]
@@ -151,12 +151,9 @@ class ChatSessionManager:
     def __init__(self, page, chat_input_selector, shadow_root_selector=None):
         self.page = page
         self.shadow_root_selector = shadow_root_selector
-
-        # TODO get chat_input_element using VLMs instead of user to provide
         self.chat_input_selector = chat_input_selector
 
     async def check_if_support_chat_running(self) -> ChatStatus:
-        # Ask LLM if this appears to be a support chat page
         prompt = """Analyze this webpage screenshot and determine if the chat is already running and ready to send a message.
 Your response should be {status: <status_string>, btn_name: <button_name>}. btn_name is the name of the text of the button that needs to be clicked to start the chat if it exists. Otherwise, no need to return this key.
 Respond with status running if the chat is already running.
@@ -164,7 +161,6 @@ Respond with status exists and the name of the text of the button that needs to 
 Respond with status unknown otherwise, i.e. if it is not clear whether the chat is running or not or you couldn't find a button to start the chat.
 """
 
-        # Send screenshot and prompt to LLM for analysis
         screenshot = await self.page.screenshot({'fullPage': True})
         with tempfile.NamedTemporaryFile(suffix='.png') as temp_file:
             temp_file.write(screenshot)
@@ -202,7 +198,6 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
 
 
     async def find_chatbot_input_element(self):
-        # TODO haven't tested this yet
         prompt = """Analyze this webpage screenshot and find the placeholder text of the chat input element, e.g. "Ask a detailed question...".
     The input element is the one that contains the placeholder text and where the user can type their message.
     Your response should be {status: <status_string>, placeholder_txt: <placeholder_text>}. placeholder_txt is the placeholder text of the chat input element.
@@ -231,16 +226,10 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
 
 
     async def initiate_support_chat(self, chatbot_url):
-        # Navigate to the chatbot and wait for page to load
         await self.page.goto(chatbot_url)
         await asyncio.sleep(3)
 
-        # check if chat is already running, e.g. https://substack.com/support
         chat_status = await self.check_if_support_chat_running()
-
-        # TODO REMOVE, just mock for development
-        # chat_status = ChatStatus(status="exists", btn_name="Start a chat") # sierra
-        # chat_status = ChatStatus(status="running") # decagon
 
         if chat_status.status == "running":
             print("Chat is already running")
@@ -255,10 +244,8 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
             else:
                 raise ValueError(f"Chat button with text '{chat_status.btn_name}' was not found.")
 
-            # wait for a few seconds to make sure the chat is running
             await asyncio.sleep(3)
         elif chat_status.status == "unknown":
-            # save screenshot of the page
             screenshot = await self.page.screenshot({'fullPage': True})
             with open(f"{chatbot_url}_no_chat_button.png", "wb") as f:
                 f.write(screenshot)
@@ -278,7 +265,6 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
         return await self.page.evaluate('''(container) => {
             const root = container || document;
             if (!container && !document) return 0;
-            // Look specifically for li elements with role-assistant class that have text content
             const elements = Array.from(root.querySelectorAll('li.role-assistant'))
                 .filter(el => el.textContent.trim().length > 0);
             return elements.length;
@@ -375,8 +361,6 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
             return messages_info
 
     async def wait_for_agent_to_finish_replying(self, get_last_msg=False):
-        # TODO store latencies for (a) started typing (b) started sending/streaming message and (c) finished sending/streaming message
-        # wait for the agent to start typing
         print(f"{datetime.now().strftime('%H:%M:%S')} - Waiting for agent to start thinking")
         last_msg = await self.get_conversation_history(get_last_msg=True)
         time_since_started_typing = time.time()
@@ -395,13 +379,10 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
         if last_msg['sender'] == 'user':
             raise ValueError(f"Agent didn't reply after time {CHATBOT_REPLY_TIMEOUT_SEC} seconds")
         
-        # wait for the agent to finish typing and sending messages (sometimes it sends multiple messages instead of one)
-        # sleep for a bit to see if agent keeps on generating text
         await asyncio.sleep(1)
         curr_msg = await self.get_conversation_history(get_last_msg=True)
         is_agent_typing = ('thinking' in curr_msg and curr_msg['thinking'])
         try:
-            # keep waiting as long as (a) agent is typing or (b) agent has finished typing but want to ensure not more messages are coming (c) timout hasn't elapsed
             while (is_agent_typing or (not is_agent_typing and ('messages' in curr_msg and 'messages' not in last_msg))) or \
                 (last_msg['messages'][-1] != curr_msg['messages'][-1]) and \
                   time.time() - time_since_started_typing < CHATBOT_REPLY_TIMEOUT_SEC:
@@ -437,10 +418,7 @@ Respond with status unknown otherwise, i.e. if it is not clear whether the chat 
         await msg_input_element.type(message, {'delay': typing_delay})
         await self.page.keyboard.press('Enter')
 
-        # TODO start and end time should be caluclated in the self.get_last_messages() function as this is where we wait for response with added sleep duration
         start_time = time.time()
-
-        # Wait for response to appear and chatbot to finish typing
         
         try:
             message_info = await self.get_last_messages()
@@ -463,10 +441,6 @@ async def run_tests(tests_to_run_count=999, verbose=False):
     browser = await launch(headless=False)
     try:
         for scenario in read_test_scenarios()[:tests_to_run_count]:
-            # TODO REMOVE
-            # if scenario["scenario_id"] != "refund_policy_question":
-            #     continue
-            
             try:
                 user_persona = json.dumps(
                     {k: v for k, v in scenario["user_persona"].items() if k != "initial_message"})
@@ -479,13 +453,10 @@ Generate your next response for the following conversation so I can send it to t
 
                 page = await browser.newPage()
 
-                # TODO get chat_input_selector and shadow_root_selector automatically using VLMs and DOM parsing
                 chat_session_manager = ChatSessionManager(page, scenario["chat_input_selector"], scenario["shadow_root_selector"])
                 msg_input_element = await chat_session_manager.initiate_support_chat(scenario["chatbot_url"])
                 result = await chat_session_manager.send_and_measure(msg_input_element,
-                                                scenario["user_persona"]["initial_message"]
-                                                # , typing_delay=10
-                                                )
+                                                scenario["user_persona"]["initial_message"])
 
                 if not result['response']:
                     raise ValueError(
@@ -501,20 +472,11 @@ Generate your next response for the following conversation so I can send it to t
                     conversation_history.append(
                         {"role": "agent", "content": msg})
 
-                # TODO add some timeout to cut the conversations short if the two AIs go round and round without resolving the issue
                 while True:
                     user_response = agent_llm.plain_call(scenario_system_prompt,
                                                         convert_conv_history_to_openai_format(conversation_history, "user"),
                                                         [issue_resolved_tool]
                                                         )
-
-                    # # TODO SAHAR REMOVE, just mock for development
-                    # # Mock user response for development
-                    # class MockResponse:
-                    #     def __init__(self):
-                    #         self.response_content = "test"
-                    #         self.tools_called = []
-                    # user_response = MockResponse()
 
                     if user_response.tools_called and user_response.tools_called[0].function.name == "user_issue_resolved":
                         arguments = json.loads(user_response.tools_called[0].function.arguments)
@@ -535,10 +497,7 @@ Generate your next response for the following conversation so I can send it to t
                         print("Conversation ended by the chatbot")
                         break
 
-                    # Send user generated text and then read the agent's response
-                    result = await chat_session_manager.send_and_measure(msg_input_element, user_response.response_content
-                                                                         # , typing_delay=10
-                                                                         )
+                    result = await chat_session_manager.send_and_measure(msg_input_element, user_response.response_content)
 
                     agent_response = result['response']
                     if not agent_response:
@@ -555,7 +514,6 @@ Generate your next response for the following conversation so I can send it to t
                         print(f"Latency: {result['latency']:.2f} seconds")
                     reply_latencies.append(result['latency'])
 
-                # TODO turn into an object
                 test_results.append(
                     (scenario, conversation_history, reply_latencies))
             except Exception as e:
@@ -566,7 +524,6 @@ Generate your next response for the following conversation so I can send it to t
     print(f"\nEvaluating {len(test_results)} scenarios")
     test_results_report = {}
     for scenario, conversation_history, reply_latencies in test_results:
-        # TODO ADD LATENCY eval
         eval_response = eval_test_scenario(scenario, conversation_history)
         test_results_report[scenario["scenario_id"]] = {
             "tested_component": scenario,
