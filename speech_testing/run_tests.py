@@ -101,7 +101,7 @@ def determine_speakers(transcription: List[CallSegment], agent_task: str) -> Dic
     if not api_key:
         raise ValueError("Please set OPENAI_API_KEY environment variable")
 
-    provider = OpenAIProvider(api_key, "gpt-4o-mini")
+    provider = OpenAIProvider(api_key, "gpt-4.1-mini")
     system_prompt = f'''I'm building a voice agent that calls people and businesses on my behalf. Here's a call transcript. Your role is to determine who is SPEAKER_00 and who is SPEAKER_01 by looking at the task I gave my voice agent and the transcript.
 Return a json with the following format: {{"speaker_00": "callee" | "voice_agent", "speaker_01": "callee" | "voice_agent"}}
 Return None if you cannot determine who is speaking or if there are more than 2 speakers.
