@@ -35,7 +35,7 @@ def run_tests(tests_to_run: list[str] = [], print_verbose: bool = False):
         raise ValueError("Please set OPENAI_API_KEY environment variable")
 
     # To choose the best LLM-as-a-Judge, review https://arxiv.org/abs/2410.12784 and https://huggingface.co/spaces/ScalerLab/JudgeBench
-    evaluator_llm = OpenAIProvider(api_key, "gpt-4o-mini")
+    evaluator_llm = OpenAIProvider(api_key, "gpt-4.1-mini")
     # evaluator_llm = OpenAIProvider(api_key, "gpt-4o")
     # evaluator_llm = OpenAIProvider(api_key, "o1-preview")
 

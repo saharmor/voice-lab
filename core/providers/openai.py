@@ -7,7 +7,7 @@ from ..data_types import ConversationContext, EntitySpeaking, LLMResponse
 
 
 class OpenAIProvider(LLMInterface):
-    def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
+    def __init__(self, api_key: str, model: str = "gpt-4.1-mini"):
         self.model = model
         openai.api_key = api_key
         self.client = openai.OpenAI(api_key=api_key)
